@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>오늘 뭐 먹을지 뽑기 🎰 | 슬롯머신 메뉴 추천</title>
+  <style>
+    :root {
+      --bg-dark: #120e23;
+      --machine-bg: #8b0000;
+      --machine-gradient: linear-gradient(145deg, #a71111, #5c0202 55%, #380000);
+      --gold-light: #ffe57f;
+      --gold-main: #ffd700;
+      --gold-dark: #b8860b;
+      --gold-border: linear-gradient(135deg, #fff3a8, #ffd700 40%, #996515 80%, #ffd700);
+      --slot-window-bg: #f8f6f0;
+      --text-color: #2b2b2b;
+      --neon-glow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 69, 0, 0.6);
+      --item-height: 84px;
+      --visible-items: 3;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 50% 30%, #2a164d 0%, #0c0818 70%, #05040a 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      color: #fff;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    /* 상단 네온 타이틀 */
+    .title-banner {
+      text-align: center;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .title-banner h1 {
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #ff2a6d, 0 0 20px #ff2a6d, 0 0 35px #ff2a6d, 0 2px 0 #330018;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .title-banner p {
+      font-size: 14px;
+      color: #f7c59f;
+      margin-top: 6px;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    /* 상단 보조 기능 바 (밥값 쏠 사람 뽑기 토글 등) */
+    .top-action-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .btn-payer-mode {
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      color: #3d1b00;
+      font-size: 14px;
+      font-weight: 900;
+      padding: 9px 18px;
+      border-radius: 20px;
+      border: 2px solid #fff;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4), 0 0 10px rgba(255, 140, 0, 0.5);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .btn-payer-mode:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+    }
+
+    .btn-payer-mode.active {
+      background: linear-gradient(135deg, #ff007f, #7928ca);
+      color: #fff;
+      border-color: #ffd700;
+      box-shadow: 0 0 16px rgba(255, 0, 127, 0.8);
+      animation: pulse-glow 1.5s infinite alternate;
+    }
+
+    @keyframes pulse-glow {
+      0% { box-shadow: 0 0 10px rgba(255, 0, 127, 0.6); }
+      100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.9); }
+    }
+
+    /* 슬롯머신 전체 래퍼 (머신 본체 + 우측 레버) */
+    .slot-arcade-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      transition: max-width 0.3s;
+    }
+
+    /* 머신 본체 캐비닛 */
+    .slot-cabinet {
+      background: var(--machine-gradient);
+      border-radius: 28px;
+      padding: 24px 28px;
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+        inset 0 -6px 12px rgba(0, 0, 0, 0.6),
+        0 0 0 8px #ffd700,
+        0 0 0 12px #6b4c04;
+      position: relative;
+      width: 100%;
+      max-width: 590px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+      transition: max-width 0.3s ease;
+    }
+
+    /* 4열(결제자 릴) 활성화 시 캐비닛 폭 확장 */
+    .slot-cabinet.payer-mode {
+      max-width: 710px;
+    }
+
+    /* 캐비닛 상단 전구 라인 */
+    .bulbs-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 14px;
+      padding: 0 10px;
+    }
+
+    .bulb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffec99;
+      box-shadow: 0 0 8px #fff, 0 0 14px #ffbe0b;
+      animation: bulb-flash 1s infinite alternate;
+    }
+
+    .bulb:nth-child(2n) {
+      background: #ff595e;
+      box-shadow: 0 0 8px #fff, 0 0 14px #ff595e;
+      animation-delay: 0.3s;
+    }
+
+    .bulb:nth-child(3n) {
+      background: #8ac926;
+      box-shadow: 0 0 8px #fff, 0 0 14px #8ac926;
+      animation-delay: 0.6s;
+    }
+
+    .bulb:nth-child(4n) {
+      background: #1982c4;
+      box-shadow: 0 0 8px #fff, 0 0 14px #1982c4;
+      animation-delay: 0.9s;
+    }
+
+    @keyframes bulb-flash {
+      0% { opacity: 0.4; filter: brightness(0.6); }
+      100% { opacity: 1; filter: brightness(1.3); }
+    }
+
+    /* 헤더 명판 */
+    .cabinet-plate {
+      background: linear-gradient(180deg, #2b0000 0%, #150000 100%);
+      border: 2px solid #ffd700;
+      border-radius: 12px;
+      padding: 6px 20px;
+      margin-bottom: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255, 215, 0, 0.4);
+    }
+
+    .plate-text {
+      color: #ffd700;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* 릴 컬럼 헤더 라벨 (3열 또는 4열) */
+    .reel-headers {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.25fr;
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 0 6px;
+      gap: 10px;
+      text-align: center;
+      transition: grid-template-columns 0.3s;
+    }
+
+    .slot-cabinet.payer-mode .reel-headers {
+      grid-template-columns: 1fr 1fr 1.15fr 1.15fr;
+    }
+
+    .reel-header-badge {
+      background: linear-gradient(180deg, #ffd700, #b8860b);
+      color: #2b1100;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 4px 4px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .reel-header-badge.badge-payer {
+      background: linear-gradient(180deg, #ff416c, #8a0035);
+      color: #fff;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 8px rgba(255, 65, 108, 0.8);
+      display: none;
+    }
+
+    .slot-cabinet.payer-mode .reel-header-badge.badge-payer {
+      display: block;
+    }
+
+    /* 슬롯 디스플레이 윈도우 */
+    .slot-window-box {
+      width: 100%;
+      background: #0f0a0a;
+      border-radius: 18px;
+      padding: 10px;
+      border: 4px solid #b8860b;
+      box-shadow: 
+        inset 0 10px 20px rgba(0, 0, 0, 0.9),
+        0 4px 8px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .reels-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.25fr;
+      gap: 10px;
+      height: calc(var(--item-height) * var(--visible-items));
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #e6e2d8;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
+      transition: grid-template-columns 0.3s ease;
+    }
+
+    .slot-cabinet.payer-mode .reels-stage {
+      grid-template-columns: 1fr 1fr 1.15fr 1.15fr;
+    }
+
+    /* 개별 릴 뷰포트 */
+    .reel-viewport {
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #ddd8ce 0%, #ffffff 25%, #ffffff 75%, #ddd8ce 100%);
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      box-shadow: 
+        inset 0 16px 20px -8px rgba(0, 0, 0, 0.65),
+        inset 0 -16px 20px -8px rgba(0, 0, 0, 0.65),
+        inset 2px 0 6px rgba(0, 0, 0, 0.15),
+        inset -2px 0 6px rgba(0, 0, 0, 0.15);
+    }
+
+    /* 4번째 릴 뷰포트 (결제자 전용 스타일) */
+    #reel-viewport-4 {
+      display: none;
+      background: linear-gradient(180deg, #fce4ec 0%, #ffffff 25%, #ffffff 75%, #fce4ec 100%);
+      border: 2px solid #ff416c;
+    }
+
+    .slot-cabinet.payer-mode #reel-viewport-4 {
+      display: block;
+    }
+
+    /* 릴 스트립 (아이템들을 세로로 길게 담은 컨테이너) */
+    .reel-strip {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transform: translateY(0px);
+      will-change: transform;
+    }
+
+    /* 슬롯 아이템 셀 */
+    .slot-item {
+      height: var(--item-height);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 4px;
+      text-align: center;
+      color: #1a1a1a;
+      transition: transform 0.2s;
+    }
+
+    .slot-item .item-emoji {
+      font-size: 26px;
+      line-height: 1.1;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+    }
+
+    .slot-item .item-text {
+      font-size: 15px;
+      font-weight: 800;
+      margin-top: 3px;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 95%;
+    }
+
+    /* 중앙 당첨 가이드 라인 (목업 스케치 반영) */
+    .win-guide-frame {
+      position: absolute;
+      top: var(--item-height);
+      left: 0;
+      width: 100%;
+      height: var(--item-height);
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* 상/하 두 개의 수평 선택선 (스케치 반영) */
+    .win-guide-frame::before,
+    .win-guide-frame::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, #ff2a2a, #ffd700 50%, #ff2a2a);
+      box-shadow: 0 0 8px rgba(255, 42, 42, 0.9), 0 0 14px rgba(255, 215, 0, 0.8);
+      z-index: 11;
+    }
+
+    .win-guide-frame::before { top: 0; }
+    .win-guide-frame::after { bottom: 0; }
+
+    /* 중앙 선택 영역 하이라이트 배경 */
+    .win-guide-highlight {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 215, 0, 0.12);
+      border-left: 3px solid #ff2a2a;
+      border-right: 3px solid #ff2a2a;
+      pointer-events: none;
+      transition: background 0.3s;
+    }
+
+    .win-guide-highlight.active-pulse {
+      background: rgba(255, 215, 0, 0.28);
+      animation: win-pulse 0.7s infinite alternate;
+    }
+
+    @keyframes win-pulse {
+      0% { box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.4); }
+      100% { box-shadow: inset 0 0 25px rgba(255, 42, 42, 0.8); }
+    }
+
+    /* 좌우 당첨 화살표 포인터 */
+    .guide-pointer-left, .guide-pointer-right {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+      z-index: 12;
+      filter: drop-shadow(0 0 4px #ff0055);
+    }
+
+    .guide-pointer-left {
+      left: -8px;
+      border-left: 12px solid #ff0055;
+    }
+
+    .guide-pointer-right {
+      right: -8px;
+      border-right: 12px solid #ff0055;
+    }
+
+    /* 하단 상태바 및 컨트롤 */
+    .cabinet-bottom {
+      width: 100%;
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .status-display {
+      background: #000;
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      padding: 10px 16px;
+      width: 100%;
+      text-align: center;
+      color: #00ffcc;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.3);
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cabinet-controls {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      gap: 10px;
+    }
+
+    .sound-toggle-btn {
+      background: #2b1100;
+      color: #ffd700;
+      border: 2px solid #b8860b;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .sound-toggle-btn:hover {
+      background: #4a2002;
+      border-color: #ffd700;
+    }
+
+    /* 모바일용 직접 스핀 버튼 */
+    .spin-push-btn {
+      flex: 1;
+      background: linear-gradient(180deg, #ff416c, #ff4b2b);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 65, 108, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .spin-push-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 6px rgba(255, 65, 108, 0.6);
+    }
+
+    .spin-push-btn:disabled {
+      filter: grayscale(0.7);
+      cursor: not-allowed;
+    }
+
+    /* ========================================================
+       우측 레버 (LEVER) 영역
+       ======================================================== */
+    .lever-assembly {
+      margin-left: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .lever-assembly:active {
+      cursor: grabbing;
+    }
+
+    .lever-bracket {
+      width: 32px;
+      height: 48px;
+      background: linear-gradient(180deg, #d4af37, #785a08 60%, #4a3502);
+      border-radius: 6px 0 0 6px;
+      position: absolute;
+      left: -20px;
+      top: 140px;
+      box-shadow: -2px 4px 8px rgba(0, 0, 0, 0.6);
+      border-left: 2px solid #fff;
+    }
+
+    .lever-base {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #e0e0e0, #888 60%, #333);
+      border: 3px solid #b8860b;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.6), inset 0 2px 4px #fff;
+      position: absolute;
+      top: 142px;
+      z-index: 4;
+    }
+
+    .lever-arm-wrap {
+      width: 60px;
+      height: 220px;
+      position: relative;
+      transform-origin: 30px 164px;
+      transition: transform 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      will-change: transform;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .lever-arm-wrap.pulled {
+      transform: rotateX(65deg) translateY(70px) scaleY(0.7);
+      transition: transform 0.25s ease-in;
+    }
+
+    .lever-arm-wrap.releasing {
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.35);
+      transform: rotateX(0deg) translateY(0px) scaleY(1);
+    }
+
+    .lever-knob {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 28%, #ff6b6b, #d90429 55%, #7a0010 90%);
+      box-shadow: 
+        0 8px 18px rgba(0, 0, 0, 0.7),
+        inset 0 4px 8px rgba(255, 255, 255, 0.8),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 5;
+      animation: knob-glow 2s infinite alternate;
+    }
+
+    @keyframes knob-glow {
+      0% { filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5)); }
+      100% { filter: drop-shadow(0 0 12px rgba(255, 107, 107, 0.9)); }
+    }
+
+    .lever-rod {
+      width: 14px;
+      height: 125px;
+      background: linear-gradient(90deg, #999, #fff 45%, #e6e6e6 55%, #666 90%, #333);
+      border-radius: 6px;
+      box-shadow: 2px 4px 10px rgba(0,0,0,0.5);
+      margin-top: -6px;
+      z-index: 3;
+    }
+
+    .lever-hint {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 15px;
+      color: #ffd700;
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+
+    .lever-hint-arrow {
+      font-size: 22px;
+      animation: bounce-arrow 1s infinite alternate ease-in-out;
+      margin-top: 2px;
+    }
+
+    @keyframes bounce-arrow {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(8px); }
+    }
+
+    /* ========================================================
+       밥값 쏠 사람 등록 모달 (참가자 이름 입력 창)
+       ======================================================== */
+    .payer-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 110;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .payer-modal-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .payer-dialog-card {
+      background: linear-gradient(150deg, #24133b, #120924);
+      border: 3px solid #ff416c;
+      border-radius: 24px;
+      padding: 26px 22px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 25px rgba(255, 65, 108, 0.5);
+      position: relative;
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .payer-modal-backdrop.show .payer-dialog-card {
+      transform: scale(1);
+    }
+
+    .payer-dialog-header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .payer-dialog-header h3 {
+      font-size: 22px;
+      font-weight: 900;
+      color: #ffd700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .payer-dialog-header p {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-top: 6px;
+    }
+
+    .payer-input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .payer-text-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid #b8860b;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .payer-text-input:focus {
+      border-color: #ffd700;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .payer-text-input::placeholder {
+      color: #8e8aa0;
+    }
+
+    .btn-add-name {
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      color: #381500;
+      font-weight: 800;
+      font-size: 14px;
+      border: none;
+      border-radius: 12px;
+      padding: 0 18px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(255, 140, 0, 0.3);
+      transition: filter 0.2s;
+    }
+
+    .btn-add-name:hover {
+      filter: brightness(1.1);
+    }
+
+    /* 등록된 이름 태그 리스트 */
+    .name-tags-wrapper {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 12px;
+      min-height: 90px;
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .name-chip {
+      background: linear-gradient(135deg, #ff416c, #8a0035);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      animation: chip-pop 0.2s ease-out;
+    }
+
+    @keyframes chip-pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .chip-delete-btn {
+      background: rgba(0, 0, 0, 0.3);
+      border: none;
+      color: #ffccd5;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chip-delete-btn:hover {
+      background: #ff0055;
+      color: #fff;
+    }
+
+    .empty-chips-hint {
+      color: #7d7795;
+      font-size: 13px;
+      width: 100%;
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .quick-preset-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      font-size: 12px;
+      color: #a49fc4;
+    }
+
+    .btn-quick-sample {
+      background: none;
+      border: none;
+      color: #ffd700;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 12px;
+    }
+
+    .payer-dialog-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-dialog-apply {
+      flex: 1.3;
+      background: linear-gradient(180deg, #ff416c, #ff4b2b);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 65, 108, 0.5);
+      transition: filter 0.2s;
+    }
+
+    .btn-dialog-apply:hover {
+      filter: brightness(1.15);
+    }
+
+    .btn-dialog-cancel {
+      flex: 0.8;
+      background: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+    }
+
+    .btn-dialog-cancel:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* 4열 모드 해제 버튼 (모달 하단) */
+    .btn-disable-mode {
+      width: 100%;
+      margin-top: 10px;
+      background: none;
+      border: none;
+      color: #ff85a1;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-align: center;
+    }
+
+    /* ========================================================
+       최종 추천 결과 모달 / 팝업 카드
+       ======================================================== */
+    .result-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .result-modal-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-card {
+      background: linear-gradient(145deg, #1f1a3a, #100b24);
+      border: 3px solid #ffd700;
+      border-radius: 24px;
+      padding: 28px 24px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 
+        0 25px 60px rgba(0, 0, 0, 0.9),
+        0 0 30px rgba(255, 215, 0, 0.4);
+      transform: scale(0.8) translateY(20px);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-modal-backdrop.show .result-card {
+      transform: scale(1) translateY(0);
+    }
+
+    .result-header-tag {
+      display: inline-block;
+      background: #ff2a6d;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      box-shadow: 0 0 10px rgba(255, 42, 109, 0.6);
+    }
+
+    .result-card h2 {
+      font-size: 18px;
+      color: #fceade;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .result-combo-pills {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 12px 0 14px;
+      flex-wrap: wrap;
+    }
+
+    .combo-pill {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 13px;
+      color: #ffd700;
+      font-weight: 700;
+    }
+
+    .result-menu-name {
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 15px #ffd700, 0 0 30px #ff9e00;
+      margin: 6px 0 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .result-menu-desc {
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.45;
+      margin-bottom: 18px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* 밥값 쏠 사람 결과 배너 (4열 모드 전용) */
+    .result-payer-box {
+      display: none;
+      background: linear-gradient(135deg, rgba(255, 65, 108, 0.25), rgba(255, 75, 43, 0.15));
+      border: 2px dashed #ff416c;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      text-align: center;
+      animation: banner-glow 1.5s infinite alternate;
+    }
+
+    @keyframes banner-glow {
+      0% { border-color: #ff416c; box-shadow: 0 0 8px rgba(255, 65, 108, 0.4); }
+      100% { border-color: #ffd700; box-shadow: 0 0 18px rgba(255, 215, 0, 0.6); }
+    }
+
+    .result-payer-box.active {
+      display: block;
+    }
+
+    .result-payer-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffd700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .result-payer-name {
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      margin: 4px 0;
+      text-shadow: 0 0 10px #ff416c;
+    }
+
+    .result-payer-sub {
+      font-size: 13px;
+      color: #ffccd5;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .btn-retry {
+      background: linear-gradient(180deg, #ff416c, #ff4b2b);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(255, 65, 108, 0.4);
+    }
+
+    .btn-retry:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    .btn-search {
+      background: #25bb35;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 187, 53, 0.4);
+    }
+
+    .btn-search:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    .modal-close-icon {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    .modal-close-icon:hover {
+      color: #fff;
+    }
+
+    /* 폭죽 캔버스 */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    /* 반응형 레이아웃 스타일링 */
+    @media (max-width: 680px) {
+      .slot-arcade-wrap {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .slot-cabinet {
+        padding: 18px 12px;
+        border-radius: 20px;
+      }
+
+      :root {
+        --item-height: 72px;
+      }
+
+      .slot-item .item-emoji {
+        font-size: 20px;
+      }
+
+      .slot-item .item-text {
+        font-size: 12px;
+      }
+
+      .reel-header-badge {
+        font-size: 10px;
+        padding: 3px 1px;
+      }
+
+      .spin-push-btn {
+        display: inline-flex;
+      }
+
+      .lever-assembly {
+        margin-left: 0;
+        margin-top: 4px;
+        transform: scale(0.85);
+      }
+
+      .lever-bracket {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 타이틀 영역 (스케치 반영) -->
+  <header class="title-banner">
+    <h1><span>🎰</span> 오늘 뭐 먹을지 뽑기 <span>🎲</span></h1>
+    <p>레버를 당겨 맛있는 메뉴 조합을 추천받아보세요!</p>
+  </header>
+
+  <!-- 상단 버튼 바: 밥값 쏠 사람 뽑기 모드 토글 -->
+  <div class="top-action-bar">
+    <button class="btn-payer-mode" id="btn-open-payer-modal">
+      <span id="payer-btn-icon">💸</span>
+      <span id="payer-btn-label">밥값 쏠 사람 뽑기</span>
+    </button>
+  </div>
+
+  <!-- 메인 슬롯머신 + 레버 래퍼 -->
+  <main class="slot-arcade-wrap">
+    
+    <!-- 슬롯머신 캐비닛 본체 -->
+    <div class="slot-cabinet" id="slot-cabinet">
+      <!-- 전구 장식 라인 -->
+      <div class="bulbs-row">
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+        <span class="bulb"></span>
+      </div>
+
+      <!-- 명판 -->
+      <div class="cabinet-plate">
+        <span class="plate-text" id="cabinet-plate-text">⭐ LUCKY FOOD SLOTS ⭐</span>
+      </div>
+
+      <!-- 릴 상단 라벨 (기본 3열 + 4열 쏠사람) -->
+      <div class="reel-headers">
+        <div class="reel-header-badge">1열. 카테고리</div>
+        <div class="reel-header-badge">2열. 음식 특성</div>
+        <div class="reel-header-badge">3열. 최종 메뉴</div>
+        <div class="reel-header-badge badge-payer" id="reel-badge-payer">4열. 💸 쏠 사람</div>
+      </div>
+
+      <!-- 슬롯 윈도우 프레임 -->
+      <div class="slot-window-box">
+        <div class="reels-stage" id="reels-stage">
+          
+          <!-- 1열: 카테고리 -->
+          <div class="reel-viewport" id="reel-viewport-1">
+            <div class="reel-strip" id="reel-strip-1"></div>
+          </div>
+
+          <!-- 2열: 음식 특성 -->
+          <div class="reel-viewport" id="reel-viewport-2">
+            <div class="reel-strip" id="reel-strip-2"></div>
+          </div>
+
+          <!-- 3열: 최종 메뉴 -->
+          <div class="reel-viewport" id="reel-viewport-3">
+            <div class="reel-strip" id="reel-strip-3"></div>
+          </div>
+
+          <!-- 4열: 밥값 쏠 사람 (동적 추가 릴) -->
+          <div class="reel-viewport" id="reel-viewport-4">
+            <div class="reel-strip" id="reel-strip-4"></div>
+          </div>
+
+          <!-- 중앙 당첨 가이드 라인 (스케치 수평 2선 & 선택 영역) -->
+          <div class="win-guide-frame">
+            <div class="guide-pointer-left"></div>
+            <div class="win-guide-highlight" id="win-guide-highlight"></div>
+            <div class="guide-pointer-right"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 하단 디스플레이 및 보조 버튼 -->
+      <div class="cabinet-bottom">
+        <div class="status-display" id="status-display">
+          READY! 레버를 힘껏 당겨주세요!
+        </div>
+
+        <div class="cabinet-controls">
+          <button class="sound-toggle-btn" id="sound-toggle-btn" title="사운드 ON/OFF">
+            <span id="sound-icon">🔊</span>
+            <span id="sound-text">소리 켬</span>
+          </button>
+          
+          <button class="spin-push-btn" id="spin-push-btn">
+            <span>⚡ 레버 당기기 (SPIN)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 우측 레버 영역 (스케치 손잡이 그래픽 & 물리적 꺾임 모션) -->
+    <div class="lever-assembly" id="lever-assembly" title="레버를 클릭하거나 아래로 드래그하세요!">
+      <div class="lever-bracket"></div>
+      <div class="lever-base"></div>
+      
+      <div class="lever-arm-wrap" id="lever-arm">
+        <div class="lever-knob"></div>
+        <div class="lever-rod"></div>
+      </div>
+
+      <div class="lever-hint">
+        <span>레버 당기기</span>
+        <span class="lever-hint-arrow">▼</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 밥값 쏠 사람(이름) 등록 모달 대화상자 -->
+  <div class="payer-modal-backdrop" id="payer-modal">
+    <div class="payer-dialog-card">
+      <button class="modal-close-icon" id="payer-modal-close" aria-label="닫기">✕</button>
+      
+      <div class="payer-dialog-header">
+        <h3>💸 밥값 쏠 사람 룰렛 등록</h3>
+        <p>함께 식사할 사람들의 이름을 입력하고 확인을 누르면<br>슬롯머신에 4번째 룰렛(쏠 사람)이 추가됩니다!</p>
+      </div>
+
+      <div class="payer-input-row">
+        <input 
+          type="text" 
+          id="payer-name-input" 
+          class="payer-text-input" 
+          placeholder="이름 입력 (예: 김철수)" 
+          maxlength="10"
+          autocomplete="off"
+        />
+        <button class="btn-add-name" id="btn-add-name">추가</button>
+      </div>
+
+      <!-- 등록된 이름 칩 리스트 -->
+      <div class="name-tags-wrapper" id="name-tags-wrapper">
+        <!-- JS 동적 렌더링 -->
+      </div>
+
+      <div class="quick-preset-bar">
+        <span>최소 2명 이상 등록해주세요</span>
+        <button class="btn-quick-sample" id="btn-quick-sample">+ 예시 인원 채우기</button>
+      </div>
+
+      <div class="payer-dialog-actions">
+        <button class="btn-dialog-apply" id="btn-payer-apply">
+          ✨ 확인 (4열 릴 추가하기)
+        </button>
+        <button class="btn-dialog-cancel" id="btn-payer-cancel">취소</button>
+      </div>
+
+      <button class="btn-disable-mode" id="btn-disable-payer-mode" style="display: none;">
+        3열 기본 모드로 돌아가기 (사람 뽑기 해제)
+      </button>
+    </div>
+  </div>
+
+  <!-- 당첨 축하 콘페티 캔버스 -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- 최종 결과 팝업 카드 -->
+  <div class="result-modal-backdrop" id="result-modal">
+    <div class="result-card">
+      <button class="modal-close-icon" id="modal-close-btn" aria-label="닫기">✕</button>
+      <div class="result-header-tag" id="result-header-tag">🎉 오늘의 잭팟 메뉴 🎉</div>
+      <h2>오늘의 추천 식사 조합</h2>
+      
+      <div class="result-combo-pills">
+        <span class="combo-pill" id="result-pill-cat">한식</span>
+        <span class="combo-pill" id="result-pill-trait">국물 요리</span>
+      </div>
+
+      <div class="result-menu-name" id="result-final-name">김치찌개</div>
+      
+      <p class="result-menu-desc" id="result-final-desc">
+        따끈하고 얼큰한 국물로 속을 든든하게 채워보세요!
+      </p>
+
+      <!-- 4열 밥값 결제자 당첨 배너 -->
+      <div class="result-payer-box" id="result-payer-box">
+        <div class="result-payer-label">👑 오늘의 밥값 결제 당첨자 👑</div>
+        <div class="result-payer-name" id="result-payer-name">홍길동</div>
+        <div class="result-payer-sub">맛있게 쏘겠습니다! 다들 맛있게 드세요! 😋🎉</div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn-action btn-retry" id="btn-spin-again">
+          <span>🔄 다시 뽑기</span>
+        </button>
+        <a class="btn-action btn-search" id="btn-map-search" target="_blank" rel="noopener">
+          <span>🔍 맛집 검색</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ========================================================
+       1. 논리적 매칭 데이터베이스 (카테고리 -> 특성 -> 최종 메뉴)
+       ======================================================== */
+    const MENU_DATABASE = [
+      {
+        category: "한식",
+        emoji: "🍚",
+        traits: [
+          {
+            trait: "얼큰/국물",
+            emoji: "🍲",
+            menus: [
+              { name: "김치찌개", emoji: "🥘", desc: "돼지고기와 묵은지가 푹 끓여진 얼큰하고 든든한 국민 찌개!" },
+              { name: "된장찌개", emoji: "🍲", desc: "구수한 된장에 두부와 애호박이 듬뿍 들어간 밥도둑!" },
+              { name: "순대국밥", emoji: "🥣", desc: "진한 사골 육수에 들깨가루 팍팍 넣은 든든한 국밥 한 그릇!" },
+              { name: "소고기무국", emoji: "🍲", desc: "맑고 담백한 소고기 육수에 달큰한 무가 어우러진 편안한 밥상!" },
+              { name: "뼈해장국", emoji: "🍖", desc: "부드러운 등뼈 살코기와 우거지가 가득한 얼큰한 해장 메뉴!" },
+              { name: "부대찌개", emoji: "🥓", desc: "햄과 소시지, 라면 사리가 듬뿍 들어간 푸짐한 찌개!" }
+            ]
+          },
+          {
+            trait: "든든한 밥",
+            emoji: "🍛",
+            menus: [
+              { name: "제육볶음", emoji: "🥩", desc: "매콤달콤한 양념에 불맛 가득 볶아낸 최고의 밥반찬!" },
+              { name: "돌솥비빔밥", emoji: "🍳", desc: "다채로운 나물과 고추장, 바삭하게 눌어붙은 누룽지의 조화!" },
+              { name: "소불고기덮밥", emoji: "🍱", desc: "달콤 짭조름한 양념의 부드러운 소고기가 밥 위에 사르르!" },
+              { name: "김치볶음밥", emoji: "🍳", desc: "잘 익은 김치에 계란 후라이 톡 얹은 완벽한 간편 한 끼!" },
+              { name: "우렁쌈밥", emoji: "🥬", desc: "싱싱한 쌈채소와 짭짤한 우렁강된장의 건강하고 풍성한 식사!" }
+            ]
+          },
+          {
+            trait: "면 요리",
+            emoji: "🍜",
+            menus: [
+              { name: "바지락칼국수", emoji: "🍜", desc: "시원하고 맑은 조개 육수에 쫄깃한 칼국수 면발!" },
+              { name: "비빔냉면", emoji: "🥢", desc: "매콤새콤한 특제 양념장에 살얼음 육수를 살짝 곁들인 별미!" },
+              { name: "물냉면", emoji: "🧊", desc: "머리끝까지 시원해지는 살얼음 동치미 육수와 메밀면!" },
+              { name: "잔치국수", emoji: "🍜", desc: "멸치 디포리로 우려낸 깊은 육수에 노란 고명을 얹은 따스함!" }
+            ]
+          },
+          {
+            trait: "고기/구이",
+            emoji: "🥩",
+            menus: [
+              { name: "삼겹살구이", emoji: "🥓", desc: "노릇노릇 불판 위에서 구워 먹는 기름지고 고소한 삼겹살!" },
+              { name: "돼지갈비", emoji: "🍖", desc: "달콤 짭짤한 숯불 향이 가득 배어 부드러운 양념 갈비!" },
+              { name: "보쌈/족발", emoji: "🥬", desc: "야들야들 담백하게 삶아낸 고기와 아삭한 무김치의 조합!" },
+              { name: "닭볶음탕", emoji: "🍗", desc: "포슬포슬 감자와 매콤 칼칼한 양념이 쏙 밴 닭볶음탕!" }
+            ]
+          }
+        ]
+      },
+      {
+        category: "중식",
+        emoji: "🥟",
+        traits: [
+          {
+            trait: "면 요리",
+            emoji: "🍜",
+            menus: [
+              { name: "짜장면", emoji: "🥢", desc: "달콤 고소한 춘장에 양파와 돼지고기가 듬뿍 볶아진 영원한 소울푸드!" },
+              { name: "해물짬뽕", emoji: "🌶️", desc: "불맛 가득한 얼큰한 국물에 오징어와 홍합이 풍성한 짬뽕!" },
+              { name: "탄탄면", emoji: "🥜", desc: "고소한 땅콩 소스와 매콤한 고추기름의 깊은 풍미!" },
+              { name: "쟁반짜장", emoji: "🥘", desc: "해산물과 면을 센 불에 직접 볶아 윤기가 좔좔 흐르는 볶음 짜장!" }
+            ]
+          },
+          {
+            trait: "밥/식사",
+            emoji: "🍚",
+            menus: [
+              { name: "중화볶음밥", emoji: "🍳", desc: "고슬고슬하게 볶아 짜장 소스와 짬뽕 국물을 곁들여 먹는 정석!" },
+              { name: "마파두부밥", emoji: "🌶️", desc: "알싸한 산초와 부드러운 두부, 다진 고기의 감칠맛!" },
+              { name: "잡채밥", emoji: "🥢", desc: "탱글한 당면과 불향 머금은 채소를 밥 위에 얹은 푸짐함!" },
+              { name: "유산슬밥", emoji: "🍄", desc: "해삼, 버섯, 죽순을 고급스럽게 볶아낸 부드러운 보양식!" }
+            ]
+          },
+          {
+            trait: "요리/튀김",
+            emoji: "🍤",
+            menus: [
+              { name: "찹쌀탕수육", emoji: "🥩", desc: "겉은 바삭하고 속은 쫄깃한 튀김에 새콤달콤 소스!" },
+              { name: "칠리새우", emoji: "🍤", desc: "통통한 왕새우에 매콤달콤한 칠리소스가 버무려진 인기 요리!" },
+              { name: "깐풍기", emoji: "🍗", desc: "바삭하게 튀긴 닭고기를 고추와 간장 소스에 빠르게 볶아낸 매콤함!" },
+              { name: "꿔바로우", emoji: "🥩", desc: "넓적한 돼지고기를 찹쌀 반죽으로 튀겨 상큼한 식초 소스를 입힌 별미!" }
+            ]
+          },
+          {
+            trait: "국물/탕",
+            emoji: "🍲",
+            menus: [
+              { name: "마라탕", emoji: "🌶️", desc: "내가 좋아하는 재료가 듬뿍! 얼얼하고 중독적인 마라 육수!" },
+              { name: "우육면", emoji: "🥩", desc: "두툼한 소고기 편육과 진하고 깊은 한약재/사골 베이스 국물!" },
+              { name: "짬뽕순두부", emoji: "🍲", desc: "몽글몽글 순두부와 얼큰한 해물 짬뽕 불맛의 만남!" }
+            ]
+          }
+        ]
+      },
+      {
+        category: "일식",
+        emoji: "🍣",
+        traits: [
+          {
+            trait: "면 요리",
+            emoji: "🍜",
+            menus: [
+              { name: "돈코츠라멘", emoji: "🍜", desc: "진하고 구수한 돼지 사골 육수에 차슈와 반숙란의 깊은 맛!" },
+              { name: "사누키우동", emoji: "🍥", desc: "탱글탱글 쫄깃한 정통 면발과 깔끔하고 깊은 가쓰오 육수!" },
+              { name: "자루소바", emoji: "🥢", desc: "시원한 쯔유 소스에 생와사비와 간 무를 풀어 적셔 먹는 메밀면!" },
+              { name: "야키소바", emoji: "🥓", desc: "단짠 특제 소스에 돼지고기와 양배추를 볶은 감칠맛 철판면!" }
+            ]
+          },
+          {
+            trait: "덮밥/밥",
+            emoji: "🍛",
+            menus: [
+              { name: "가츠동", emoji: "🍱", desc: "바삭한 돈까스에 달걀과 단짠 쯔유 소스를 촉촉하게 올린 덮밥!" },
+              { name: "규동", emoji: "🥩", desc: "얇게 썬 소고기와 달달하게 조린 양파가 밥 위에 듬뿍!" },
+              { name: "사케동", emoji: "🍣", desc: "두툼하고 신선한 연어 사시미에 생와사비를 얹은 프리미엄 덮밥!" },
+              { name: "일본식 카레", emoji: "🍛", desc: "진하고 녹진하게 카라멜라이징된 양파 베이스의 깊은 카레!" }
+            ]
+          },
+          {
+            trait: "튀김/고기",
+            emoji: "🥩",
+            menus: [
+              { name: "치즈돈카츠", emoji: "🧀", desc: "두툼한 고기 속에 모짜렐라 치즈가 주욱 늘어나는 바삭함!" },
+              { name: "로스카츠", emoji: "🥩", desc: "육즙이 살아있는 촉촉한 등심에 바삭한 생빵가루의 조화!" },
+              { name: "치킨가라아게", emoji: "🍗", desc: "겉바속촉 짭조름하게 밑간된 육즙 폭발 닭튀김!" },
+              { name: "모둠텐동", emoji: "🍤", desc: "왕새우와 온센타마고, 채소 튀김이 갓 튀겨져 올라간 튀김덮밥!" }
+            ]
+          },
+          {
+            trait: "초밥/해산물",
+            emoji: "🍣",
+            menus: [
+              { name: "모둠초밥", emoji: "🍣", desc: "활어, 연어, 참치, 새우 등 다양한 신선함을 한 번에 즐기는 만찬!" },
+              { name: "후토마키", emoji: "🍙", desc: "신선한 참치와 연어, 새우튀김, 계란이 가득 찬 일본식 대왕 김밥!" },
+              { name: "회덮밥", emoji: "🥗", desc: "아삭한 채소와 신선한 횟감에 새콤달콤 초고추장을 비벼 먹는 한 그릇!" }
+            ]
+          }
+        ]
+      },
+      {
+        category: "양식",
+        emoji: "🍕",
+        traits: [
+          {
+            trait: "파스타",
+            emoji: "🍝",
+            menus: [
+              { name: "까르보나라", emoji: "🥓", desc: "베이컨과 달걀 노른자, 파마산 치즈의 꾸덕하고 고소한 풍미!" },
+              { name: "봉골레파스타", emoji: "🦪", desc: "신선한 조개 육수와 마늘, 올리브유의 깔끔하고 깊은 오일 파스타!" },
+              { name: "토마토해물파스타", emoji: "🍅", desc: "새콤달콤 토마토 소스에 오징어와 새우가 듬뿍 어우러진 맛!" },
+              { name: "투움바파스타", emoji: "🌶️", desc: "매콤한 고춧가루와 부드러운 생크림, 새우가 들어간 베스트셀러!" }
+            ]
+          },
+          {
+            trait: "스테이크/고기",
+            emoji: "🥩",
+            menus: [
+              { name: "소고기스테이크", emoji: "🥩", desc: "미디엄으로 부드럽게 구워 육즙이 가득한 안심/등심 스테이크!" },
+              { name: "바비큐폭립", emoji: "🍖", desc: "달콤 훈연 바비큐 소스를 발라 뼈째 뜯는 부드러운 등갈비!" },
+              { name: "찹스테이크", emoji: "🧄", desc: "한입 크기 소고기와 피망, 버섯을 특제 소스에 볶아낸 요리!" },
+              { name: "수제함박스테이크", emoji: "🍳", desc: "도톰한 패티 위에 데미글라스 소스와 반숙 계란 후라이!" }
+            ]
+          },
+          {
+            trait: "피자/버거",
+            emoji: "🍔",
+            menus: [
+              { name: "수제치즈버거", emoji: "🍔", desc: "육즙 넘치는 쇠고기 패티와 멜팅 치즈, 싱싱한 채소의 완벽 밸런스!" },
+              { name: "화덕페퍼로니피자", emoji: "🍕", desc: "바삭한 도우 위에 짭짤한 페퍼로니와 고소한 치즈가 듬뿍!" },
+              { name: "고르곤졸라피자", emoji: "🍯", desc: "진한 블루치즈 향과 달콤한 꿀의 거부할 수 없는 단짠 매력!" }
+            ]
+          },
+          {
+            trait: "리조또/필라프",
+            emoji: "🍛",
+            menus: [
+              { name: "버섯크림리조또", emoji: "🍄", desc: "트러플 오일 향이 은은하게 감도는 부드럽고 녹진한 크림 쌀요리!" },
+              { name: "해산물토마토리조또", emoji: "🦐", desc: "새콤한 토마토 소스에 신선한 해산물이 어우러진 감칠맛!" },
+              { name: "김치치즈필라프", emoji: "🍳", desc: "서양식 버터 필라프에 매콤한 김치와 치즈가 녹아든 퓨전 요리!" }
+            ]
+          }
+        ]
+      },
+      {
+        category: "분식/간편",
+        emoji: "🍢",
+        traits: [
+          {
+            trait: "매콤 떡볶이",
+            emoji: "🌶️",
+            menus: [
+              { name: "국물떡볶이&튀김", emoji: "🍢", desc: "달콤 매콤한 국물에 갓 튀긴 김말이와 만두를 푹 찍어 먹는 짝꿍!" },
+              { name: "로제떡볶이", emoji: "🧀", desc: "부드러운 크림과 매콤한 떡볶이 양념, 중국당면과 소시지의 조합!" },
+              { name: "즉석떡볶이", emoji: "🥘", desc: "라면 사리, 야끼만두, 계란 넣고 보글보글 끓여 먹는 추억의 맛!" }
+            ]
+          },
+          {
+            trait: "김밥/식사",
+            emoji: "🍙",
+            menus: [
+              { name: "참치마요김밥", emoji: "🍙", desc: "고소한 참치마요와 깻잎 향이 꽉 찬 실패 없는 든든한 한 줄!" },
+              { name: "돈까스김밥", emoji: "🥢", desc: "바삭한 돈까스와 소스가 통째로 들어간 든든한 프리미엄 김밥!" },
+              { name: "매콤제육김밥", emoji: "🥩", desc: "매콤달콤한 제육볶음이 밥 속 가득 들어있는 알찬 맛!" }
+            ]
+          },
+          {
+            trait: "면/따끈국물",
+            emoji: "🍜",
+            menus: [
+              { name: "치즈라면&공기밥", emoji: "🍜", desc: "꼬들꼬들 끓인 라면에 고소한 체다치즈 한 장 올려 국물까지 클리어!" },
+              { name: "꼬치어묵탕", emoji: "🍢", desc: "김이 모락모락 피어나는 진한 어묵 국물과 쫄깃한 부산 어묵!" },
+              { name: "쫄면&만두", emoji: "🥟", desc: "새콤달콤 매콤 쫄깃한 쫄면에 노릇하게 구운 군만두의 환상 궁합!" }
+            ]
+          }
+        ]
+      },
+      {
+        category: "아시안",
+        emoji: "🥗",
+        traits: [
+          {
+            trait: "쌀국수/면",
+            emoji: "🍜",
+            menus: [
+              { name: "소고기쌀국수", emoji: "🥩", desc: "진하고 깔끔한 양지 육수에 아삭한 숙주와 부드러운 쌀면발!" },
+              { name: "팟타이", emoji: "🍤", desc: "새우, 두부, 숙주를 타마린드 소스에 볶아 땅콩가루를 뿌린 태국 볶음면!" },
+              { name: "분짜", emoji: "🥬", desc: "새콤달콤한 느억맘 소스에 숯불 돼지고기와 쌀국수를 푹 적셔 먹는 별미!" }
+            ]
+          },
+          {
+            trait: "볶음밥/덮밥",
+            emoji: "🍛",
+            menus: [
+              { name: "나시고랭", emoji: "🍳", desc: "달콤 짭조름한 인도네시아 특제 소스에 불향 가득 볶아낸 세계 1위 볶음밥!" },
+              { name: "뿌팟퐁커리", emoji: "🦀", desc: "바삭한 소프트쉘 크랩에 부드러운 옐로우 커리와 계란이 어우러진 만찬!" },
+              { name: "파인애플볶음밥", emoji: "🍍", desc: "달콤 상큼한 파인애플과 새우, 캐슈넛이 듬뿍 들어간 동남아식 볶음밥!" }
+            ]
+          }
+        ]
+      }
+    ];
+
+    /* ========================================================
+       2. Web Audio API 사운드 엔진
+       ======================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            this.ctx = new AudioContextClass();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+      }
+
+      // 1. 레버 당길 때: 메탈릭 래칫 & 스프링 사운드
+      playLever() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+
+        // 노이즈 버스트
+        const bufferSize = this.ctx.sampleRate * 0.1;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1800;
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.35, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+
+      // 2. 릴 회전 중: 틱틱틱 클릭 사운드
+      playTick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(750 + Math.random() * 100, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.035);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+
+      // 3. 각 릴 정지 시: 둔탁하고 묵직한 '착!' (thud)
+      playStop(reelIndex) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const baseFreq = [180, 220, 260, 300][reelIndex] || 200;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.18);
+
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+
+        // 스냅 어택
+        const snap = this.ctx.createOscillator();
+        const snapGain = this.ctx.createGain();
+        snap.type = 'square';
+        snap.frequency.setValueAtTime(600, now);
+        snap.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+
+        snapGain.gain.setValueAtTime(0.3, now);
+        snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+        snap.connect(snapGain);
+        snapGain.connect(this.ctx.destination);
+        snap.start(now);
+        snap.stop(now + 0.07);
+      }
+
+      // 4. 최종 잭팟 당첨 시: 화려한 아르페지오 팡파르
+      playFanfare() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        const now = this.ctx.currentTime;
+
+        notes.forEach((freq, idx) => {
+          const startTime = now + idx * 0.08;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, startTime);
+
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + 0.5);
+        });
+
+        // 리버브 화음 벨
+        setTimeout(() => {
+          if (!this.enabled || !this.ctx) return;
+          const chord = [1046.50, 1318.51, 1567.98, 2093.00];
+          const cNow = this.ctx.currentTime;
+          chord.forEach(f => {
+            const o = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(f, cNow);
+            g.gain.setValueAtTime(0.2, cNow);
+            g.gain.exponentialRampToValueAtTime(0.001, cNow + 0.9);
+            o.connect(g);
+            g.connect(this.ctx.destination);
+            o.start(cNow);
+            o.stop(cNow + 1.0);
+          });
+        }, 500);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ========================================================
+       3. 폭죽 콘페티 (Confetti) 파티클 시스템
+       ======================================================== */
+    class ConfettiEffect {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.animId = null;
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      burst() {
+        this.particles = [];
+        const colors = ['#ffd700', '#ff2a6d', '#00f5d4', '#7b2cbf', '#ff9e00', '#ffffff'];
+        const numParticles = 140;
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2 - 40;
+
+        for (let i = 0; i < numParticles; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 12 + 4;
+          this.particles.push({
+            x: centerX,
+            y: centerY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 3,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotationSpeed: (Math.random() - 0.5) * 15,
+            gravity: 0.35,
+            drag: 0.96,
+            alpha: 1,
+            decay: Math.random() * 0.015 + 0.01
+          });
+        }
+
+        if (!this.animId) {
+          this.animate();
+        }
+      }
+
+      animate() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.gravity;
+          p.vx *= p.drag;
+          p.vy *= p.drag;
+          p.rotation += p.rotationSpeed;
+          p.alpha -= p.decay;
+
+          if (p.alpha <= 0) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+
+          this.ctx.save();
+          this.ctx.globalAlpha = p.alpha;
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate((p.rotation * Math.PI) / 180);
+          this.ctx.fillStyle = p.color;
+          this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4);
+          this.ctx.restore();
+        }
+
+        if (this.particles.length > 0) {
+          this.animId = requestAnimationFrame(() => this.animate());
+        } else {
+          this.animId = null;
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+      }
+    }
+
+    const confetti = new ConfettiEffect('confetti-canvas');
+
+    /* ========================================================
+       4. 슬롯머신 릴 클래스
+       ======================================================== */
+    const ITEM_HEIGHT = 84;
+
+    const ALL_CATEGORIES = MENU_DATABASE.map(c => ({ text: c.category, emoji: c.emoji }));
+    const ALL_TRAITS = MENU_DATABASE.flatMap(c => c.traits.map(t => ({ text: t.trait, emoji: t.emoji })));
+    const ALL_MENUS = MENU_DATABASE.flatMap(c => c.traits.flatMap(t => t.menus.map(m => ({ text: m.name, emoji: m.emoji }))));
+
+    class SlotReel {
+      constructor(stripEl, defaultItem, allItemsPool) {
+        this.strip = stripEl;
+        this.pool = allItemsPool;
+        this.currentItem = defaultItem;
+        this.itemsList = [];
+        this.targetIndex = 1;
+        this.currentTranslateY = 0;
+        this.isSpinning = false;
+        this.renderInitial(defaultItem);
+      }
+
+      setPool(newPool) {
+        this.pool = newPool;
+      }
+
+      renderInitial(centerItem) {
+        const dummyBefore = this.pool[(Math.floor(Math.random() * this.pool.length))] || centerItem;
+        const dummyAfter = this.pool[(Math.floor(Math.random() * this.pool.length))] || centerItem;
+        this.itemsList = [dummyBefore, centerItem, dummyAfter];
+        this.buildDOM();
+        this.setTranslateY(0);
+      }
+
+      buildDOM() {
+        this.strip.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+        this.itemsList.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'slot-item';
+          div.innerHTML = `
+            <span class="item-emoji">${item.emoji}</span>
+            <span class="item-text">${item.text}</span>
+          `;
+          fragment.appendChild(div);
+        });
+        this.strip.appendChild(fragment);
+      }
+
+      setTranslateY(y) {
+        this.currentTranslateY = y;
+        this.strip.style.transform = `translateY(${y}px)`;
+      }
+
+      prepareSpin(targetItem, spinRounds = 25) {
+        const stripItems = [];
+        stripItems.push(...this.itemsList.slice(0, 3));
+
+        for (let i = 0; i < spinRounds; i++) {
+          const randomItem = this.pool[Math.floor(Math.random() * this.pool.length)];
+          stripItems.push(randomItem);
+        }
+
+        const dummyPrev = this.pool[Math.floor(Math.random() * this.pool.length)];
+        const dummyNext = this.pool[Math.floor(Math.random() * this.pool.length)];
+
+        const targetCenterPos = stripItems.length + 1;
+        stripItems.push(dummyPrev);
+        stripItems.push(targetItem);
+        stripItems.push(dummyNext);
+
+        this.itemsList = stripItems;
+        this.targetIndex = targetCenterPos;
+        this.buildDOM();
+        this.setTranslateY(0);
+      }
+
+      spinToTarget(durationMs) {
+        return new Promise(resolve => {
+          this.isSpinning = true;
+          const targetY = -(this.targetIndex - 1) * ITEM_HEIGHT;
+
+          this.strip.style.transition = `transform ${durationMs}ms cubic-bezier(0.12, 0.95, 0.22, 1.05)`;
+          this.setTranslateY(targetY);
+
+          setTimeout(() => {
+            this.strip.style.transition = 'none';
+            const finalCenter = this.itemsList[this.targetIndex];
+            const finalPrev = this.itemsList[this.targetIndex - 1];
+            const finalNext = this.itemsList[this.targetIndex + 1];
+            this.itemsList = [finalPrev, finalCenter, finalNext];
+            this.targetIndex = 1;
+            this.buildDOM();
+            this.setTranslateY(0);
+            this.isSpinning = false;
+            resolve(finalCenter);
+          }, durationMs + 20);
+        });
+      }
+    }
+
+    /* ========================================================
+       5. 밥값 쏠 사람(결제자) 관리 데이터 및 4열 릴
+       ======================================================== */
+    const PAYER_AVATARS = ["👑", "💸", "💳", "🤑", "🤠", "🥳", "😱", "😎", "🤩", "🙌"];
+    let payerNames = ["김철수", "이영희", "박지민", "최민수"]; // 기본 참가자 예시
+    let isPayerModeActive = false; // 4열 릴 활성화 여부
+
+    const slotCabinet = document.getElementById('slot-cabinet');
+    const reelStrip1 = document.getElementById('reel-strip-1');
+    const reelStrip2 = document.getElementById('reel-strip-2');
+    const reelStrip3 = document.getElementById('reel-strip-3');
+    const reelStrip4 = document.getElementById('reel-strip-4');
+    const cabinetPlateText = document.getElementById('cabinet-plate-text');
+
+    // 릴 1~3 초기화
+    const reel1 = new SlotReel(reelStrip1, { text: "한식", emoji: "🍚" }, ALL_CATEGORIES);
+    const reel2 = new SlotReel(reelStrip2, { text: "얼큰/국물", emoji: "🍲" }, ALL_TRAITS);
+    const reel3 = new SlotReel(reelStrip3, { text: "김치찌개", emoji: "🥘" }, ALL_MENUS);
+
+    // 4열 결제자 릴 풀 생성 헬퍼
+    function getPayerPool(names) {
+      return names.map((name, i) => ({
+        text: name,
+        emoji: PAYER_AVATARS[i % PAYER_AVATARS.length]
+      }));
+    }
+
+    // 4열 릴 초기화
+    let payerPool = getPayerPool(payerNames);
+    const reel4 = new SlotReel(reelStrip4, payerPool[0], payerPool);
+
+    /* ========================================================
+       6. 밥값 쏠 사람 모달 UI & 4열 모드 설정
+       ======================================================== */
+    const btnOpenPayerModal = document.getElementById('btn-open-payer-modal');
+    const payerBtnLabel = document.getElementById('payer-btn-label');
+    const payerModal = document.getElementById('payer-modal');
+    const payerModalClose = document.getElementById('payer-modal-close');
+    const payerNameInput = document.getElementById('payer-name-input');
+    const btnAddName = document.getElementById('btn-add-name');
+    const nameTagsWrapper = document.getElementById('name-tags-wrapper');
+    const btnQuickSample = document.getElementById('btn-quick-sample');
+    const btnPayerApply = document.getElementById('btn-payer-apply');
+    const btnPayerCancel = document.getElementById('btn-payer-cancel');
+    const btnDisablePayerMode = document.getElementById('btn-disable-payer-mode');
+
+    // 모달 내 이름 칩 렌더링
+    function renderNameChips() {
+      nameTagsWrapper.innerHTML = '';
+      if (payerNames.length === 0) {
+        nameTagsWrapper.innerHTML = '<div class="empty-chips-hint">등록된 이름이 없습니다. 위 입력창에서 이름을 추가해주세요!</div>';
+        return;
+      }
+
+      payerNames.forEach((name, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'name-chip';
+        chip.innerHTML = `
+          <span>${PAYER_AVATARS[idx % PAYER_AVATARS.length]} ${name}</span>
+          <button class="chip-delete-btn" data-index="${idx}" title="삭제">✕</button>
+        `;
+        nameTagsWrapper.appendChild(chip);
+      });
+
+      // 삭제 버튼 이벤트
+      nameTagsWrapper.querySelectorAll('.chip-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const index = parseInt(e.currentTarget.getAttribute('data-index'));
+          payerNames.splice(index, 1);
+          renderNameChips();
+        });
+      });
+    }
+
+    // 이름 추가 함수
+    function handleAddName() {
+      const val = payerNameInput.value.trim();
+      if (!val) return;
+      if (payerNames.includes(val)) {
+        alert('이미 등록된 이름입니다.');
+        payerNameInput.focus();
+        return;
+      }
+      payerNames.push(val);
+      payerNameInput.value = '';
+      renderNameChips();
+      payerNameInput.focus();
+    }
+
+    btnAddName.addEventListener('click', handleAddName);
+    payerNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddName();
+      }
+    });
+
+    // 예시 인원 채우기
+    btnQuickSample.addEventListener('click', () => {
+      payerNames = ["철수", "영희", "민수", "지민", "동현"];
+      renderNameChips();
+    });
+
+    // 모달 열기
+    btnOpenPayerModal.addEventListener('click', () => {
+      renderNameChips();
+      btnDisablePayerMode.style.display = isPayerModeActive ? 'block' : 'none';
+      payerModal.classList.add('show');
+      payerNameInput.focus();
+    });
+
+    // 모달 닫기
+    function closePayerModal() {
+      payerModal.classList.remove('show');
+    }
+
+    payerModalClose.addEventListener('click', closePayerModal);
+    btnPayerCancel.addEventListener('click', closePayerModal);
+
+    payerModal.addEventListener('click', (e) => {
+      if (e.target === payerModal) closePayerModal();
+    });
+
+    // 4열 적용 확인 버튼 클릭
+    btnPayerApply.addEventListener('click', () => {
+      if (payerNames.length < 2) {
+        alert('밥값 쏠 사람 뽑기를 위해 최소 2명 이상의 이름을 등록해주세요!');
+        payerNameInput.focus();
+        return;
+      }
+
+      // 4열 모드 활성화
+      isPayerModeActive = true;
+      slotCabinet.classList.add('payer-mode');
+      btnOpenPayerModal.classList.add('active');
+      payerBtnLabel.textContent = `💸 쏠 사람 (${payerNames.length}명 등록됨)`;
+      cabinetPlateText.textContent = "⭐ LUCKY FOOD & PAYER SLOTS ⭐";
+
+      // 4열 릴 데이터 갱신
+      payerPool = getPayerPool(payerNames);
+      reel4.setPool(payerPool);
+      reel4.renderInitial(payerPool[0]);
+
+      closePayerModal();
+      statusDisplay.textContent = `READY! 4열(결제자) 추가 완료! (${payerNames.join(', ')})`;
+    });
+
+    // 4열 모드 해제 (3열 복귀)
+    btnDisablePayerMode.addEventListener('click', () => {
+      isPayerModeActive = false;
+      slotCabinet.classList.remove('payer-mode');
+      btnOpenPayerModal.classList.remove('active');
+      payerBtnLabel.textContent = "밥값 쏠 사람 뽑기";
+      cabinetPlateText.textContent = "⭐ LUCKY FOOD SLOTS ⭐";
+      closePayerModal();
+      statusDisplay.textContent = "기본 3열 모드로 복귀했습니다. 레버를 당겨주세요!";
+    });
+
+    /* ========================================================
+       7. 슬롯머신 컨트롤러 & 스핀 시퀀스 (3열/4열 유연 대응)
+       ======================================================== */
+    const winHighlight = document.getElementById('win-guide-highlight');
+    const statusDisplay = document.getElementById('status-display');
+    const spinPushBtn = document.getElementById('spin-push-btn');
+    const leverAssembly = document.getElementById('lever-assembly');
+    const leverArm = document.getElementById('lever-arm');
+
+    // 모달 관련 요소
+    const resultModal = document.getElementById('result-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const resultHeaderTag = document.getElementById('result-header-tag');
+    const resultPillCat = document.getElementById('result-pill-cat');
+    const resultPillTrait = document.getElementById('result-pill-trait');
+    const resultFinalName = document.getElementById('result-final-name');
+    const resultFinalDesc = document.getElementById('result-final-desc');
+    const resultPayerBox = document.getElementById('result-payer-box');
+    const resultPayerName = document.getElementById('result-payer-name');
+    const btnSpinAgain = document.getElementById('btn-spin-again');
+    const btnMapSearch = document.getElementById('btn-map-search');
+
+    // 사운드 토글
+    const soundToggleBtn = document.getElementById('sound-toggle-btn');
+    const soundIcon = document.getElementById('sound-icon');
+    const soundText = document.getElementById('sound-text');
+
+    let isMachineRunning = false;
+    let tickInterval = null;
+
+    soundToggleBtn.addEventListener('click', () => {
+      const active = sound.toggle();
+      soundIcon.textContent = active ? '🔊' : '🔇';
+      soundText.textContent = active ? '소리 켬' : '음소거';
+      if (active) sound.playTick();
+    });
+
+    // 논리적 메뉴 추천 생성기
+    function generateMatchedRecommendation() {
+      const chosenCategoryObj = MENU_DATABASE[Math.floor(Math.random() * MENU_DATABASE.length)];
+      const chosenTraitObj = chosenCategoryObj.traits[Math.floor(Math.random() * chosenCategoryObj.traits.length)];
+      const chosenMenuObj = chosenTraitObj.menus[Math.floor(Math.random() * chosenTraitObj.menus.length)];
+
+      const result = {
+        category: { text: chosenCategoryObj.category, emoji: chosenCategoryObj.emoji },
+        trait: { text: chosenTraitObj.trait, emoji: chosenTraitObj.emoji },
+        menu: { text: chosenMenuObj.name, emoji: chosenMenuObj.emoji, desc: chosenMenuObj.desc },
+        payer: null
+      };
+
+      // 4열 모드일 경우 결제자 무작위 1명 선정
+      if (isPayerModeActive && payerNames.length > 0) {
+        const randomPayerItem = payerPool[Math.floor(Math.random() * payerPool.length)];
+        result.payer = randomPayerItem;
+      }
+
+      return result;
+    }
+
+    // 메인 스핀 시퀀스
+    async function triggerSpin() {
+      if (isMachineRunning) return;
+      isMachineRunning = true;
+      spinPushBtn.disabled = true;
+
+      winHighlight.classList.remove('active-pulse');
+      resultModal.classList.remove('show');
+
+      statusDisplay.textContent = isPayerModeActive 
+        ? "SPINNING... 메뉴와 밥값 쏠 사람 추첨 중!" 
+        : "SPINNING... 맛있는 메뉴 조합 탐색 중!";
+      statusDisplay.style.color = '#ffd700';
+
+      const selected = generateMatchedRecommendation();
+
+      // 릴 회전 준비
+      reel1.prepareSpin(selected.category, 26);
+      reel2.prepareSpin(selected.trait, 34);
+      reel3.prepareSpin(selected.menu, 44);
+
+      if (isPayerModeActive && selected.payer) {
+        reel4.prepareSpin(selected.payer, 54);
+      }
+
+      // 회전 틱틱 사운드
+      let tickSpeed = 70;
+      tickInterval = setInterval(() => {
+        sound.playTick();
+      }, tickSpeed);
+
+      // 순차 정지
+      const p1 = reel1.spinToTarget(1600).then(() => {
+        sound.playStop(0);
+        statusDisplay.textContent = `[${selected.category.text}] 확정! 특성 선택 중...`;
+      });
+
+      const p2 = reel2.spinToTarget(2300).then(() => {
+        sound.playStop(1);
+        statusDisplay.textContent = `[${selected.category.text}] + [${selected.trait.text}] 확정!`;
+      });
+
+      const p3 = reel3.spinToTarget(3000).then(() => {
+        sound.playStop(2);
+        if (isPayerModeActive) {
+          statusDisplay.textContent = `메뉴 확정! 💸 밥값 쏠 사람 결정 직전!!`;
+        }
+      });
+
+      const spinPromises = [p1, p2, p3];
+
+      if (isPayerModeActive && selected.payer) {
+        const p4 = reel4.spinToTarget(3800).then(() => {
+          sound.playStop(3);
+        });
+        spinPromises.push(p4);
+      }
+
+      await Promise.all(spinPromises);
+
+      clearInterval(tickInterval);
+
+      // 최종 잭팟 효과
+      if (isPayerModeActive && selected.payer) {
+        statusDisplay.textContent = `🎉 [${selected.menu.text}] 쏜다! 당첨: [${selected.payer.text}] 님!`;
+      } else {
+        statusDisplay.textContent = `🎉 잭팟! 오늘의 추천: ${selected.menu.text}!`;
+      }
+      statusDisplay.style.color = '#00ffcc';
+      winHighlight.classList.add('active-pulse');
+
+      sound.playFanfare();
+      confetti.burst();
+
+      setTimeout(() => {
+        showResultModal(selected);
+        isMachineRunning = false;
+        spinPushBtn.disabled = false;
+      }, 500);
+    }
+
+    // 결과 팝업 카드 표시
+    function showResultModal(selected) {
+      resultPillCat.textContent = `${selected.category.emoji} ${selected.category.text}`;
+      resultPillTrait.textContent = `${selected.trait.emoji} ${selected.trait.text}`;
+      resultFinalName.textContent = `${selected.menu.emoji} ${selected.menu.text}`;
+      resultFinalDesc.textContent = selected.menu.desc;
+
+      // 4열 결제자 당첨 결과 표시
+      if (isPayerModeActive && selected.payer) {
+        resultHeaderTag.textContent = "🎉 메뉴 & 결제자 동시 당첨 🎉";
+        resultPayerBox.classList.add('active');
+        resultPayerName.textContent = `${selected.payer.emoji} ${selected.payer.text} 님 당첨!`;
+      } else {
+        resultHeaderTag.textContent = "🎉 오늘의 잭팟 메뉴 🎉";
+        resultPayerBox.classList.remove('active');
+      }
+
+      const query = encodeURIComponent(`${selected.menu.text} 맛집`);
+      btnMapSearch.href = `https://map.naver.com/p/search/${query}`;
+
+      resultModal.classList.add('show');
+    }
+
+    modalCloseBtn.addEventListener('click', () => {
+      resultModal.classList.remove('show');
+    });
+
+    resultModal.addEventListener('click', (e) => {
+      if (e.target === resultModal) {
+        resultModal.classList.remove('show');
+      }
+    });
+
+    btnSpinAgain.addEventListener('click', () => {
+      resultModal.classList.remove('show');
+      setTimeout(() => {
+        pullLeverAction();
+      }, 300);
+    });
+
+    /* ========================================================
+       8. 레버 인터랙션
+       ======================================================== */
+    function pullLeverAction() {
+      if (isMachineRunning) return;
+
+      sound.playLever();
+
+      leverArm.classList.remove('releasing');
+      leverArm.classList.add('pulled');
+
+      setTimeout(() => {
+        leverArm.classList.remove('pulled');
+        leverArm.classList.add('releasing');
+        triggerSpin();
+      }, 280);
+
+      setTimeout(() => {
+        leverArm.classList.remove('releasing');
+      }, 700);
+    }
+
+    leverAssembly.addEventListener('click', (e) => {
+      e.preventDefault();
+      pullLeverAction();
+    });
+
+    spinPushBtn.addEventListener('click', () => {
+      pullLeverAction();
+    });
+
+    let startY = 0;
+    let isDragging = false;
+
+    leverAssembly.addEventListener('pointerdown', (e) => {
+      if (isMachineRunning) return;
+      startY = e.clientY;
+      isDragging = true;
+      leverAssembly.setPointerCapture(e.pointerId);
+    });
+
+    leverAssembly.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const deltaY = e.clientY - startY;
+      if (deltaY > 35) {
+        isDragging = false;
+        pullLeverAction();
+      }
+    });
+
+    leverAssembly.addEventListener('pointerup', (e) => {
+      isDragging = false;
+      try {
+        leverAssembly.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    });
+
+    leverAssembly.addEventListener('pointercancel', () => {
+      isDragging = false;
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !isMachineRunning && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        pullLeverAction();
+      }
+    });
+
+    document.addEventListener('pointerdown', () => {
+      sound.init();
+    }, { once: true });
+  </script>
+</body>
+</html>
