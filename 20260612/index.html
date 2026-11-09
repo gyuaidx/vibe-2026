@@ -1,3 +1,2081 @@
-<html>
-<body>HELL0 WORLD</body>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DRAGON QUEST TODO ~ 용사의 퀘스트 수첩 ~</title>
+  
+  <!-- Retro Pixel Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sun-typeface/neo-dunggeunmo/neodunggeunmo.css">
+
+  <style>
+    /* ==========================================================================
+       RESET & ROOT VARIABLES
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg-color: #000000;
+      --text-white: #ffffff;
+      --dq-gold: #facc15;
+      --dq-gold-light: #fef08a;
+      --dq-gold-dark: #ca8a04;
+      --dq-blue: #38bdf8;
+      --dq-blue-dark: #0284c7;
+      --dq-green: #22c55e;
+      --dq-red: #ef4444;
+      --dq-purple: #c084fc;
+      --border-outer: #ffffff;
+      --border-inner: #ffffff;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-white);
+      font-family: 'Press Start 2P', 'NeoDunggeunmo', 'Silkscreen', monospace;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 14px 10px 40px;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-font-smoothing: none;
+      image-rendering: pixelated;
+    }
+
+    /* Subtle CRT Scanline overlay */
+    .crt-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+      z-index: 999;
+      opacity: 0.6;
+    }
+
+    /* Screen Shake & Flash Effects */
+    body.screen-flash {
+      animation: screenFlashAnim 0.6s ease-out;
+    }
+    @keyframes screenFlashAnim {
+      0% { filter: brightness(3.5) contrast(1.5); }
+      50% { filter: brightness(2); }
+      100% { filter: brightness(1); }
+    }
+
+    body.curse-shake {
+      animation: curseShakeAnim 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes curseShakeAnim {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+
+    /* Cursed Purple Screen Vignette */
+    #curse-vignette {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 990;
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+      background: radial-gradient(circle, transparent 40%, rgba(147, 51, 234, 0.45) 85%, rgba(107, 33, 168, 0.85) 100%);
+      box-shadow: inset 0 0 60px rgba(220, 38, 38, 0.7);
+    }
+    #curse-vignette.active {
+      opacity: 1;
+    }
+
+    /* ==========================================================================
+       DRAGON QUEST RETRO WINDOW (DOUBLE BORDER BOX)
+       ========================================================================== */
+    .dq-window {
+      background: #000000;
+      border: 4px solid #ffffff;
+      outline: 4px solid #000000;
+      box-shadow: 0 0 0 4px #ffffff, 0 6px 0 4px rgba(0, 0, 0, 0.7);
+      border-radius: 6px;
+      position: relative;
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+
+    /* Retro Window Title Ribbon */
+    .dq-window-header {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--dq-gold);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px dashed #444444;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    /* ==========================================================================
+       MAIN CONTAINER
+       ========================================================================== */
+    .game-container {
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Top Bar with Audio & Title */
+    .top-meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 4px;
+    }
+    .game-main-title {
+      font-size: 11px;
+      color: var(--dq-gold);
+      letter-spacing: 0.5px;
+      text-shadow: 2px 2px 0px #000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .game-actions-bar {
+      display: flex;
+      gap: 8px;
+    }
+    .pixel-btn-icon {
+      background: #000;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 5px 8px;
+      font-size: 9px;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.1s;
+    }
+    .pixel-btn-icon:hover {
+      background: #fff;
+      color: #000;
+    }
+    .pixel-btn-icon:active {
+      transform: scale(0.95);
+    }
+
+    /* ==========================================================================
+       1. TOP HEADER & ANNOUNCEMENT AREA
+       ========================================================================== */
+    .hero-status-window {
+      padding: 12px 14px;
+    }
+
+    /* Announcement Banner */
+    .announcement-box {
+      text-align: center;
+      margin-bottom: 12px;
+      padding: 6px;
+      border: 2px solid #333;
+      background: #0a0a0a;
+    }
+    .level-announcement {
+      font-size: 13px;
+      color: #ffffff;
+      letter-spacing: 1px;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+    .level-announcement.flash-lvlup {
+      color: var(--dq-gold);
+      animation: lvlUpFlash 0.5s infinite alternate;
+      text-shadow: 0 0 10px var(--dq-gold), 0 0 20px var(--dq-gold);
+      transform: scale(1.08);
+    }
+    @keyframes lvlUpFlash {
+      0% { color: #ffffff; text-shadow: 0 0 5px #ffffff; }
+      100% { color: var(--dq-gold); text-shadow: 0 0 16px var(--dq-gold); }
+    }
+
+    /* Status Grid */
+    .status-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .hero-name-badge {
+      font-size: 11px;
+      color: #ffffff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .hero-name-badge:hover {
+      color: var(--dq-gold);
+      text-decoration: underline;
+    }
+    .hero-title-badge {
+      font-size: 10px;
+      color: var(--dq-blue);
+    }
+
+    .level-badge-large {
+      font-size: 14px;
+      color: var(--dq-gold);
+      text-shadow: 2px 2px 0 #000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Retro Stepped Pixel EXP Bar */
+    .exp-bar-container {
+      margin-top: 10px;
+    }
+    .exp-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #aaaaaa;
+      margin-bottom: 6px;
+    }
+    .exp-bar-frame {
+      background: #111111;
+      border: 2px solid #ffffff;
+      height: 22px;
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+    }
+    .exp-bar-segments {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      gap: 2px;
+    }
+    .exp-segment {
+      flex: 1;
+      height: 100%;
+      background: #222222;
+      transition: background 0.25s, box-shadow 0.25s;
+    }
+    .exp-segment.filled {
+      background: var(--dq-green);
+      box-shadow: inset 0 0 2px #fff;
+    }
+    .exp-segment.filled.pulse {
+      background: var(--dq-gold);
+      box-shadow: 0 0 6px var(--dq-gold);
+    }
+
+    /* ==========================================================================
+       2. CENTER CHARACTER STAGE
+       ========================================================================== */
+    .stage-window {
+      text-align: center;
+      padding: 16px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      background: radial-gradient(circle at 50% 60%, #151a24 0%, #000000 75%);
+      overflow: hidden;
+    }
+
+    /* Light Beam on Level Up */
+    .light-beam {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 130px;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(254, 240, 138, 0.45) 0%, rgba(250, 204, 21, 0.15) 70%, transparent 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 2;
+    }
+    .light-beam.active {
+      opacity: 1;
+      animation: beamPulse 0.8s infinite alternate;
+    }
+    @keyframes beamPulse {
+      0% { width: 110px; opacity: 0.7; }
+      100% { width: 160px; opacity: 1; }
+    }
+
+    /* Sparkle Particle Canvas */
+    #particle-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    /* Character Pedestal */
+    .character-platform {
+      position: relative;
+      width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+      z-index: 5;
+    }
+
+    /* Hero Sprite Wrapper */
+    .hero-sprite-wrapper {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      transform-origin: bottom center;
+    }
+
+    /* Idle Breathing / Bobbing Animation */
+    .hero-sprite-wrapper.idle-bob {
+      animation: heroIdleBob 1.2s steps(2, jump-none) infinite;
+    }
+    @keyframes heroIdleBob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Victory Jump on Level-Up */
+    .hero-sprite-wrapper.victory-jump {
+      animation: heroVictoryJump 0.8s ease-out;
+    }
+    @keyframes heroVictoryJump {
+      0% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(-24px) scale(1.05); }
+      55% { transform: translateY(0) scale(1); }
+      75% { transform: translateY(-12px) scale(1.02); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    /* Curse Stagger / Shake on Debuff */
+    .hero-sprite-wrapper.curse-stagger {
+      animation: heroCurseStagger 0.6s ease-in-out;
+    }
+    @keyframes heroCurseStagger {
+      0%, 100% { transform: translateX(0) rotate(0deg); filter: none; }
+      20% { transform: translateX(-8px) rotate(-4deg); filter: drop-shadow(0 0 10px #a855f7) hue-rotate(270deg); }
+      40% { transform: translateX(8px) rotate(4deg); filter: drop-shadow(0 0 12px #dc2626); }
+      60% { transform: translateX(-6px) rotate(-2deg); filter: drop-shadow(0 0 8px #a855f7); }
+      80% { transform: translateX(4px) rotate(1deg); }
+    }
+
+    /* SVG Hero Sprite */
+    .hero-svg {
+      width: 160px;
+      height: 160px;
+      filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.9));
+    }
+    .hero-legendary {
+      filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.8)) drop-shadow(0 6px 0 rgba(0, 0, 0, 0.9));
+    }
+
+    /* Stone Pedestal */
+    .stone-pedestal {
+      width: 150px;
+      height: 14px;
+      background: #334155;
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 0 #0f172a, inset 0 2px 0 #64748b;
+      margin-top: -6px;
+      position: relative;
+    }
+    .stone-pedestal::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 8px; right: 8px; height: 2px;
+      background: #94a3b8;
+    }
+
+    /* Equipment & Class Info Card */
+    .hero-gear-info {
+      margin-top: 14px;
+      font-size: 9px;
+      color: #cbd5e1;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #444;
+      padding: 6px 12px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 5;
+    }
+    .hero-gear-title {
+      color: var(--dq-gold);
+    }
+
+    /* ==========================================================================
+       3. BOTTOM QUEST LOG (TODO LIST)
+       ========================================================================== */
+    .quest-log-window {
+      padding: 14px;
+    }
+
+    /* Task Input Form */
+    .task-input-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      background: #080808;
+      border: 2px solid #222;
+      padding: 10px;
+    }
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    @media (min-width: 480px) {
+      .input-row {
+        flex-direction: row;
+      }
+    }
+    .pixel-input {
+      flex: 1;
+      background: #000;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 10px 10px;
+      font-family: inherit;
+      font-size: 10px;
+      outline: none;
+    }
+    .pixel-input::placeholder {
+      color: #666;
+    }
+    .pixel-input:focus {
+      border-color: var(--dq-gold);
+      box-shadow: 0 0 6px var(--dq-gold);
+    }
+
+    .pixel-select {
+      background: #000;
+      color: var(--dq-gold);
+      border: 2px solid #fff;
+      padding: 10px 8px;
+      font-family: inherit;
+      font-size: 9px;
+      outline: none;
+      cursor: pointer;
+    }
+    .pixel-select:focus {
+      border-color: var(--dq-gold);
+    }
+    .pixel-select option {
+      background: #000;
+      color: #fff;
+    }
+
+    .pixel-btn-submit {
+      background: #000;
+      color: var(--dq-gold);
+      border: 2px solid var(--dq-gold);
+      box-shadow: inset 0 0 0 1px #000, 0 3px 0 #000;
+      padding: 11px;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.1s;
+    }
+    .pixel-btn-submit:hover {
+      background: var(--dq-gold);
+      color: #000;
+    }
+    .pixel-btn-submit:active {
+      transform: translateY(2px);
+    }
+
+    /* Filter & Count Row */
+    .quest-filters-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #333;
+    }
+    .filter-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .filter-tab {
+      background: transparent;
+      color: #777;
+      border: 1px solid transparent;
+      font-family: inherit;
+      font-size: 8px;
+      padding: 4px 6px;
+      cursor: pointer;
+    }
+    .filter-tab.active {
+      color: var(--dq-gold);
+      border-color: var(--dq-gold);
+      background: #111;
+    }
+    .quest-count-summary {
+      font-size: 8px;
+      color: #888;
+    }
+
+    /* Todo List */
+    .todo-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 100px;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #050505;
+      border: 2px solid #222;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .todo-item:hover {
+      border-color: #ffffff;
+      background: #0d0d0d;
+    }
+
+    /* JRPG Cursor Arrow on Hover */
+    .todo-pointer {
+      font-size: 10px;
+      color: var(--dq-gold);
+      width: 12px;
+      display: inline-block;
+      visibility: hidden;
+      animation: pointerBlink 0.6s infinite alternate;
+    }
+    .todo-item:hover .todo-pointer {
+      visibility: visible;
+    }
+    @keyframes pointerBlink {
+      0% { opacity: 0.3; transform: translateX(-2px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Checkbox & Text Container */
+    .todo-left-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      cursor: pointer;
+      min-width: 0;
+    }
+
+    /* Retro Bracket Checkbox [ ] / [*] */
+    .retro-checkbox {
+      font-size: 12px;
+      font-family: inherit;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      letter-spacing: -1px;
+    }
+    .retro-checkbox .bracket {
+      color: #777;
+    }
+    .retro-checkbox .mark {
+      width: 10px;
+      text-align: center;
+      color: transparent;
+      display: inline-block;
+    }
+
+    .todo-item.completed .retro-checkbox .mark {
+      color: var(--dq-gold);
+      font-weight: bold;
+    }
+    .todo-item.completed .retro-checkbox .bracket {
+      color: var(--dq-gold);
+    }
+
+    /* Todo Text */
+    .todo-text {
+      font-size: 10px;
+      line-height: 1.4;
+      color: #ffffff;
+      word-break: break-all;
+      flex: 1;
+      transition: color 0.15s;
+    }
+    .todo-item.completed .todo-text {
+      color: #64748b;
+      text-decoration: line-through;
+    }
+
+    /* Difficulty EXP Badge */
+    .exp-badge {
+      font-size: 8px;
+      padding: 3px 6px;
+      border-radius: 2px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .exp-badge-20 {
+      background: #14532d;
+      color: #86efac;
+      border: 1px solid #22c55e;
+    }
+    .exp-badge-40 {
+      background: #78350f;
+      color: #fde047;
+      border: 1px solid #f59e0b;
+    }
+    .exp-badge-60 {
+      background: #701a75;
+      color: #f472b6;
+      border: 1px solid #e879f9;
+    }
+
+    /* Delete Button [X] */
+    .btn-delete-quest {
+      background: transparent;
+      color: #666;
+      border: none;
+      font-family: inherit;
+      font-size: 10px;
+      padding: 4px 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.1s;
+      flex-shrink: 0;
+    }
+    .btn-delete-quest:hover {
+      color: var(--dq-red);
+    }
+
+    /* Empty State */
+    .empty-quest-state {
+      text-align: center;
+      padding: 24px 10px;
+      color: #666;
+      font-size: 9px;
+      line-height: 1.8;
+      border: 1px dashed #333;
+    }
+
+    /* ==========================================================================
+       4. RETRO DIALOGUE SYSTEM (POPUP / MESSAGE LOG)
+       ========================================================================== */
+    .dialogue-window {
+      padding: 12px 14px;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #000;
+      position: relative;
+    }
+    .dialogue-text {
+      font-size: 10px;
+      line-height: 1.6;
+      color: #ffffff;
+      flex: 1;
+    }
+    .dialogue-text.level-up-msg {
+      color: var(--dq-gold);
+    }
+    .dialogue-text.curse-msg {
+      color: var(--dq-purple);
+    }
+    .dialogue-prompt-arrow {
+      color: var(--dq-gold);
+      font-size: 10px;
+      animation: promptBlink 0.7s infinite alternate;
+      flex-shrink: 0;
+    }
+    @keyframes promptBlink {
+      0% { opacity: 0; transform: translateY(-2px); }
+      100% { opacity: 1; transform: translateY(2px); }
+    }
+
+    /* ==========================================================================
+       SOUND TEST / CONTROLS MODAL
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-window {
+      width: 100%;
+      max-width: 440px;
+    }
+    .sound-test-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .btn-sound-test {
+      background: #111;
+      color: #fff;
+      border: 2px solid #555;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 9px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .btn-sound-test:hover {
+      border-color: var(--dq-gold);
+      color: var(--dq-gold);
+    }
+
+    /* Mobile fine-tuning */
+    @media (max-width: 400px) {
+      .game-main-title {
+        font-size: 9px;
+      }
+      .level-badge-large {
+        font-size: 12px;
+      }
+      .pixel-input, .pixel-btn-submit {
+        font-size: 9px;
+      }
+      .todo-text {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Retro Scanline Overlay -->
+  <div class="crt-overlay"></div>
+
+  <!-- Cursed Purple Vignette Overlay -->
+  <div id="curse-vignette"></div>
+
+  <div class="game-container">
+    
+    <!-- Top Metadata Bar -->
+    <div class="top-meta-bar">
+      <div class="game-main-title">
+        <span>⚔️</span>
+        <span>DRAGON QUEST TODO</span>
+      </div>
+      <div class="game-actions-bar">
+        <button id="btn-sound-toggle" class="pixel-btn-icon" title="사운드 켜기/끄기">
+          <span id="sound-icon">🔊</span>
+          <span id="sound-text">SFX ON</span>
+        </button>
+        <button id="btn-sound-test-modal" class="pixel-btn-icon" title="사운드 테스트 및 설정">
+          <span>⚙️</span>
+          <span>MENU</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1. TOP HEADER & ANNOUNCEMENT AREA -->
+    <section class="dq-window hero-status-window">
+      <!-- Announcement Banner -->
+      <div class="announcement-box">
+        <span id="level-announcement" class="level-announcement">★ 용사의 여정이 시작되었다! ★</span>
+      </div>
+
+      <!-- Status Gauge Info -->
+      <div class="status-row-top">
+        <div>
+          <span id="hero-name-btn" class="hero-name-badge" title="클릭하여 이름 변경">
+            <span>勇者</span>
+            <span id="hero-name-text">로토</span>
+            <span style="font-size:8px;color:#888;">[✎]</span>
+          </span>
+          <div id="hero-class-title" class="hero-title-badge">견습 모험가</div>
+        </div>
+        <div class="level-badge-large">
+          <span>LEVEL</span>
+          <span id="level-num-display" style="color:#ffffff;">1</span>
+        </div>
+      </div>
+
+      <!-- Stepped Pixel EXP Bar -->
+      <div class="exp-bar-container">
+        <div class="exp-label-row">
+          <span>EXPERIENCE</span>
+          <span><span id="exp-current-text">0</span> / 100 EXP (<span id="exp-percent-text">0%</span>)</span>
+        </div>
+        <div class="exp-bar-frame" id="exp-segments-container">
+          <!-- 10 Stepped Segments populated by JS -->
+          <div class="exp-bar-segments" id="exp-bar-segments"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CENTER CHARACTER STAGE -->
+    <section class="dq-window stage-window">
+      <!-- Golden Light Beam on Level Up -->
+      <div id="light-beam" class="light-beam"></div>
+      
+      <!-- Sparkle Particle Canvas -->
+      <canvas id="particle-canvas"></canvas>
+
+      <div class="character-platform">
+        <!-- Hero Sprite with Animations -->
+        <div id="hero-sprite-wrapper" class="hero-sprite-wrapper idle-bob">
+          <div id="hero-svg-mount"></div>
+        </div>
+        <!-- Stone Platform -->
+        <div class="stone-pedestal"></div>
+      </div>
+
+      <!-- Hero Gear Details -->
+      <div class="hero-gear-info">
+        <div><span class="hero-gear-title">RANK:</span> <span id="gear-rank-text">Lv.1 초심자</span></div>
+        <div><span class="hero-gear-title">EQUIP:</span> <span id="gear-equip-text">나무 몽둥이 & 여행자 옷</span></div>
+      </div>
+    </section>
+
+    <!-- 3. BOTTOM QUEST LOG (TODO LIST) -->
+    <section class="dq-window quest-log-window">
+      <div class="dq-window-header">
+        <span>❖ QUEST LOG ❖</span>
+        <span style="font-size:9px;color:#aaa;">COMMAND WINDOW</span>
+      </div>
+
+      <!-- Task Input Form -->
+      <form id="quest-form" class="task-input-form">
+        <div class="input-row">
+          <input 
+            type="text" 
+            id="quest-input" 
+            class="pixel-input" 
+            placeholder="수행할 퀘스트를 입력하세요..." 
+            autocomplete="off"
+            required
+          />
+          <select id="quest-difficulty" class="pixel-select" title="퀘스트 난이도 및 획득 EXP">
+            <option value="20">보통 (+20 EXP)</option>
+            <option value="40">중요 (+40 EXP)</option>
+            <option value="60">매우 중요 (+60 EXP)</option>
+          </select>
+        </div>
+        <button type="submit" class="pixel-btn-submit">
+          <span>⚔️</span>
+          <span>[COMMAND: ADD QUEST]</span>
+        </button>
+      </form>
+
+      <!-- Filter Tabs & Stats -->
+      <div class="quest-filters-bar">
+        <div class="filter-tabs">
+          <button type="button" class="filter-tab active" data-filter="all">전체</button>
+          <button type="button" class="filter-tab" data-filter="active">진행 중</button>
+          <button type="button" class="filter-tab" data-filter="completed">완료됨</button>
+        </div>
+        <div class="quest-count-summary">
+          <span>퀘스트: <span id="active-count-text">0</span>건 남음</span>
+        </div>
+      </div>
+
+      <!-- Todo List -->
+      <div id="todo-list" class="todo-list-container">
+        <!-- Dynamic Todo items inserted here -->
+      </div>
+    </section>
+
+    <!-- 4. RETRO DIALOGUE POPUP SYSTEM -->
+    <section class="dq-window dialogue-window">
+      <div id="dialogue-text" class="dialogue-text">
+        ▶ 모험의 서가 열렸다. 준비가 되면 새로운 퀘스트를 수락하라!
+      </div>
+      <div class="dialogue-prompt-arrow">▼</div>
+    </section>
+
+  </div>
+
+  <!-- Modal: Sound Test & Menu -->
+  <div id="sound-modal" class="modal-overlay">
+    <div class="dq-window modal-window">
+      <div class="dq-window-header">
+        <span>⚙️ SYSTEM & SOUND TEST</span>
+        <button id="btn-close-modal" class="pixel-btn-icon">✕</button>
+      </div>
+      <p style="font-size:9px;line-height:1.6;color:#ccc;margin-bottom:12px;">
+        100% Web Audio API로 실시간 합성되는 8비트 레트로 사운드 테스트:
+      </p>
+      <div class="sound-test-grid">
+        <button class="btn-sound-test" id="test-sfx-cursor">1. Cursor (선택음)</button>
+        <button class="btn-sound-test" id="test-sfx-complete">2. Clear (완수음)</button>
+        <button class="btn-sound-test" id="test-sfx-levelup">3. Level Up (팡파르)</button>
+        <button class="btn-sound-test" id="test-sfx-curse">4. Curse (저주음)</button>
+        <button class="btn-sound-test" id="test-sfx-leveldown">5. Level Down (강등음)</button>
+        <button class="btn-sound-test" id="btn-reset-data" style="color:var(--dq-red);border-color:var(--dq-red);">
+          ⚠️ 데이터 초기화
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SCRIPTS: AUDIO SYNTHESIS, SPRITES, GAME LOGIC
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       HERO SPRITES CATALOG (Hand-crafted 28x28 Retro Pixel Art SVGs)
+       ========================================================================== */
+    const HERO_DATA = {
+      1: {
+        title: "견습 모험가",
+        titleEn: "Novice Traveler",
+        rankName: "Lv.1 초심자",
+        equipment: "나무 몽둥이 & 여행자 옷",
+        svg: `<svg viewBox="0 0 28 28" class="hero-svg" shape-rendering="crispEdges">
+          <!-- Hair / Head -->
+          <rect x="11" y="2" width="6" height="2" fill="#78350f"/>
+          <rect x="10" y="3" width="8" height="2" fill="#92400e"/>
+          <rect x="9" y="4" width="10" height="2" fill="#78350f"/>
+          <rect x="9" y="5" width="2" height="4" fill="#78350f"/>
+          <rect x="17" y="5" width="2" height="4" fill="#78350f"/>
+          <!-- Face -->
+          <rect x="11" y="5" width="6" height="4" fill="#fed7aa"/>
+          <rect x="11" y="9" width="6" height="1" fill="#fba359"/>
+          <!-- Eyes -->
+          <rect x="12" y="6" width="1" height="2" fill="#020617"/>
+          <rect x="15" y="6" width="1" height="2" fill="#020617"/>
+          <rect x="12" y="6" width="1" height="1" fill="#ffffff"/>
+          <rect x="15" y="6" width="1" height="1" fill="#ffffff"/>
+          <!-- Wooden Stick (Weapon) -->
+          <rect x="5" y="8" width="2" height="13" fill="#b45309"/>
+          <rect x="5" y="8" width="1" height="13" fill="#d97706"/>
+          <rect x="4" y="9" width="1" height="2" fill="#15803d"/>
+          <!-- Tunic Body -->
+          <rect x="11" y="10" width="6" height="6" fill="#2563eb"/>
+          <rect x="10" y="11" width="8" height="5" fill="#2563eb"/>
+          <rect x="13" y="10" width="2" height="6" fill="#1d4ed8"/>
+          <!-- Hands -->
+          <rect x="6" y="14" width="3" height="3" fill="#fed7aa"/>
+          <rect x="19" y="14" width="3" height="3" fill="#fed7aa"/>
+          <!-- Rope Belt -->
+          <rect x="10" y="16" width="8" height="1" fill="#b45309"/>
+          <rect x="13" y="17" width="2" height="2" fill="#d97706"/>
+          <!-- Pants -->
+          <rect x="10" y="17" width="8" height="4" fill="#78350f"/>
+          <rect x="10" y="21" width="3" height="4" fill="#78350f"/>
+          <rect x="15" y="21" width="3" height="4" fill="#78350f"/>
+          <!-- Shoes -->
+          <rect x="9" y="25" width="4" height="2" fill="#451a03"/>
+          <rect x="15" y="25" width="4" height="2" fill="#451a03"/>
+        </svg>`
+      },
+      2: {
+        title: "방랑 모험가",
+        titleEn: "Adventurer",
+        rankName: "Lv.2 숙련자",
+        equipment: "강철 단검 & 나무 버클러",
+        svg: `<svg viewBox="0 0 28 28" class="hero-svg" shape-rendering="crispEdges">
+          <!-- Hair & Feather -->
+          <rect x="17" y="1" width="2" height="2" fill="#22c55e"/>
+          <rect x="11" y="2" width="6" height="2" fill="#78350f"/>
+          <rect x="10" y="3" width="8" height="2" fill="#92400e"/>
+          <rect x="9" y="4" width="10" height="2" fill="#78350f"/>
+          <rect x="9" y="5" width="2" height="4" fill="#78350f"/>
+          <rect x="17" y="5" width="2" height="4" fill="#78350f"/>
+          <!-- Face -->
+          <rect x="11" y="5" width="6" height="4" fill="#fed7aa"/>
+          <rect x="11" y="9" width="6" height="1" fill="#fba359"/>
+          <!-- Eyes -->
+          <rect x="12" y="6" width="1" height="2" fill="#020617"/>
+          <rect x="15" y="6" width="1" height="2" fill="#020617"/>
+          <rect x="12" y="6" width="1" height="1" fill="#ffffff"/>
+          <rect x="15" y="6" width="1" height="1" fill="#ffffff"/>
+          <!-- Iron Dagger (Weapon) -->
+          <rect x="5" y="9" width="1" height="6" fill="#f8fafc"/>
+          <rect x="6" y="9" width="1" height="6" fill="#94a3b8"/>
+          <rect x="4" y="15" width="4" height="1" fill="#475569"/>
+          <rect x="5" y="16" width="2" height="3" fill="#78350f"/>
+          <rect x="5" y="19" width="2" height="1" fill="#f59e0b"/>
+          <!-- Green Tunic & Leather Vest -->
+          <rect x="10" y="10" width="8" height="6" fill="#15803d"/>
+          <rect x="11" y="11" width="6" height="5" fill="#854d0e"/>
+          <rect x="13" y="11" width="2" height="5" fill="#a16207"/>
+          <!-- Gold Buckle -->
+          <rect x="13" y="14" width="2" height="2" fill="#fbbf24"/>
+          <!-- Hands -->
+          <rect x="5" y="17" width="2" height="2" fill="#fed7aa"/>
+          <rect x="19" y="15" width="2" height="2" fill="#fed7aa"/>
+          <!-- Wooden Buckler Shield -->
+          <rect x="20" y="11" width="5" height="7" fill="#78350f"/>
+          <rect x="21" y="10" width="3" height="9" fill="#78350f"/>
+          <rect x="20" y="10" width="5" height="1" fill="#cbd5e1"/>
+          <rect x="20" y="18" width="5" height="1" fill="#cbd5e1"/>
+          <rect x="19" y="12" width="1" height="5" fill="#cbd5e1"/>
+          <rect x="25" y="12" width="1" height="5" fill="#cbd5e1"/>
+          <rect x="22" y="13" width="2" height="3" fill="#fbbf24"/>
+          <!-- Belt & Pants -->
+          <rect x="10" y="16" width="8" height="1" fill="#78350f"/>
+          <rect x="10" y="17" width="8" height="4" fill="#334155"/>
+          <rect x="10" y="21" width="3" height="4" fill="#334155"/>
+          <rect x="15" y="21" width="3" height="4" fill="#334155"/>
+          <!-- Sturdy Boots -->
+          <rect x="9" y="25" width="4" height="2" fill="#522b10"/>
+          <rect x="15" y="25" width="4" height="2" fill="#522b10"/>
+        </svg>`
+      },
+      3: {
+        title: "청동 기사",
+        titleEn: "Bronze Knight",
+        rankName: "Lv.3 기사",
+        equipment: "청동 갑옷 & 강철 롱소드 & 청동 방패",
+        svg: `<svg viewBox="0 0 28 28" class="hero-svg" shape-rendering="crispEdges">
+          <!-- Bronze Horns -->
+          <rect x="8" y="2" width="2" height="3" fill="#f59e0b"/>
+          <rect x="18" y="2" width="2" height="3" fill="#f59e0b"/>
+          <!-- Bronze Helmet -->
+          <rect x="10" y="2" width="8" height="2" fill="#cd7f32"/>
+          <rect x="9" y="4" width="10" height="2" fill="#ea580c"/>
+          <rect x="9" y="6" width="2" height="4" fill="#cd7f32"/>
+          <rect x="17" y="6" width="2" height="4" fill="#cd7f32"/>
+          <rect x="11" y="4" width="6" height="1" fill="#fcd34d"/>
+          <!-- Face -->
+          <rect x="11" y="6" width="6" height="3" fill="#fed7aa"/>
+          <rect x="11" y="9" width="6" height="1" fill="#cd7f32"/>
+          <!-- Eyes -->
+          <rect x="12" y="7" width="1" height="1" fill="#020617"/>
+          <rect x="15" y="7" width="1" height="1" fill="#020617"/>
+          <!-- Steel Longsword -->
+          <rect x="5" y="4" width="1" height="11" fill="#ffffff"/>
+          <rect x="6" y="5" width="1" height="10" fill="#94a3b8"/>
+          <rect x="3" y="15" width="6" height="1" fill="#f59e0b"/>
+          <rect x="5" y="16" width="2" height="3" fill="#b91c1c"/>
+          <rect x="5" y="19" width="2" height="1" fill="#f59e0b"/>
+          <!-- Bronze Armor -->
+          <rect x="8" y="10" width="3" height="3" fill="#cd7f32"/>
+          <rect x="17" y="10" width="3" height="3" fill="#cd7f32"/>
+          <rect x="10" y="10" width="8" height="6" fill="#cd7f32"/>
+          <rect x="11" y="11" width="6" height="4" fill="#d97706"/>
+          <rect x="13" y="10" width="2" height="6" fill="#ea580c"/>
+          <!-- Hands -->
+          <rect x="5" y="16" width="2" height="2" fill="#cd7f32"/>
+          <rect x="18" y="15" width="2" height="2" fill="#cd7f32"/>
+          <!-- Bronze Shield with Cross -->
+          <rect x="19" y="10" width="6" height="7" fill="#cd7f32"/>
+          <rect x="20" y="17" width="4" height="2" fill="#cd7f32"/>
+          <rect x="21" y="19" width="2" height="1" fill="#cd7f32"/>
+          <rect x="19" y="10" width="6" height="1" fill="#f59e0b"/>
+          <rect x="19" y="10" width="1" height="7" fill="#f59e0b"/>
+          <rect x="24" y="10" width="1" height="7" fill="#f59e0b"/>
+          <rect x="20" y="17" width="1" height="2" fill="#f59e0b"/>
+          <rect x="23" y="17" width="1" height="2" fill="#f59e0b"/>
+          <rect x="21" y="12" width="2" height="4" fill="#f59e0b"/>
+          <rect x="20" y="13" width="4" height="2" fill="#f59e0b"/>
+          <!-- Belt & Greaves -->
+          <rect x="10" y="16" width="8" height="1" fill="#78350f"/>
+          <rect x="10" y="17" width="8" height="4" fill="#334155"/>
+          <rect x="10" y="21" width="3" height="4" fill="#cd7f32"/>
+          <rect x="15" y="21" width="3" height="4" fill="#cd7f32"/>
+          <rect x="9" y="25" width="4" height="2" fill="#ea580c"/>
+          <rect x="15" y="25" width="4" height="2" fill="#ea580c"/>
+        </svg>`
+      },
+      4: {
+        title: "은빛 성기사",
+        titleEn: "Silver Paladin",
+        rankName: "Lv.4 성기사",
+        equipment: "은빛 플레이트 & 찬란한 대검 & 성기사 방패",
+        svg: `<svg viewBox="0 0 28 28" class="hero-svg" shape-rendering="crispEdges">
+          <!-- Paladin Winged Helmet -->
+          <rect x="7" y="1" width="2" height="4" fill="#ffffff"/>
+          <rect x="8" y="2" width="2" height="4" fill="#cbd5e1"/>
+          <rect x="18" y="2" width="2" height="4" fill="#cbd5e1"/>
+          <rect x="19" y="1" width="2" height="4" fill="#ffffff"/>
+          <rect x="10" y="2" width="8" height="2" fill="#f8fafc"/>
+          <rect x="9" y="4" width="10" height="2" fill="#e2e8f0"/>
+          <rect x="9" y="6" width="10" height="4" fill="#cbd5e1"/>
+          <rect x="10" y="3" width="8" height="1" fill="#ffffff"/>
+          <!-- Glowing Cyan Visor Slit -->
+          <rect x="11" y="6" width="6" height="2" fill="#020617"/>
+          <rect x="12" y="6" width="4" height="1" fill="#38bdf8"/>
+          <rect x="13" y="6" width="2" height="1" fill="#ffffff"/>
+          <!-- Radiant Holy Broadsword -->
+          <rect x="5" y="2" width="2" height="13" fill="#ffffff"/>
+          <rect x="4" y="3" width="1" height="11" fill="#38bdf8"/>
+          <rect x="7" y="3" width="1" height="11" fill="#38bdf8"/>
+          <rect x="3" y="15" width="6" height="1" fill="#0284c7"/>
+          <rect x="5" y="16" width="2" height="3" fill="#0369a1"/>
+          <rect x="5" y="19" width="2" height="1" fill="#38bdf8"/>
+          <!-- Silver Plate Armor & Tabard -->
+          <rect x="8" y="10" width="3" height="3" fill="#e2e8f0"/>
+          <rect x="17" y="10" width="3" height="3" fill="#e2e8f0"/>
+          <rect x="10" y="10" width="8" height="6" fill="#f1f5f9"/>
+          <rect x="12" y="10" width="4" height="6" fill="#0284c7"/>
+          <rect x="13" y="11" width="2" height="4" fill="#38bdf8"/>
+          <!-- Gauntlets -->
+          <rect x="5" y="16" width="2" height="2" fill="#e2e8f0"/>
+          <rect x="18" y="15" width="2" height="2" fill="#e2e8f0"/>
+          <!-- Silver Shield with Cyan Cross -->
+          <rect x="19" y="9" width="6" height="8" fill="#f8fafc"/>
+          <rect x="20" y="17" width="4" height="2" fill="#f8fafc"/>
+          <rect x="21" y="19" width="2" height="1" fill="#f8fafc"/>
+          <rect x="19" y="9" width="1" height="8" fill="#94a3b8"/>
+          <rect x="24" y="9" width="1" height="8" fill="#94a3b8"/>
+          <rect x="21" y="11" width="2" height="5" fill="#0284c7"/>
+          <rect x="20" y="12" width="4" height="2" fill="#0284c7"/>
+          <rect x="21" y="12" width="2" height="2" fill="#38bdf8"/>
+          <!-- Greaves & Sabatons -->
+          <rect x="10" y="16" width="8" height="1" fill="#0369a1"/>
+          <rect x="10" y="17" width="8" height="4" fill="#64748b"/>
+          <rect x="10" y="21" width="3" height="4" fill="#e2e8f0"/>
+          <rect x="15" y="21" width="3" height="4" fill="#e2e8f0"/>
+          <rect x="9" y="25" width="4" height="2" fill="#f8fafc"/>
+          <rect x="15" y="25" width="4" height="2" fill="#f8fafc"/>
+        </svg>`
+      },
+      5: {
+        title: "전설의 용사",
+        titleEn: "Legendary Dragon Hero",
+        rankName: "Lv.5+ 전설의 용사",
+        equipment: "로토의 황금갑옷 & 로토의 검 & 전설의 방패",
+        svg: `<svg viewBox="0 0 28 28" class="hero-svg hero-legendary" shape-rendering="crispEdges">
+          <!-- Flowing Crimson Cape -->
+          <rect x="7" y="9" width="3" height="13" fill="#dc2626"/>
+          <rect x="6" y="11" width="2" height="12" fill="#991b1b"/>
+          <rect x="8" y="10" width="1" height="13" fill="#ef4444"/>
+          <!-- Dragon Crown with Ruby -->
+          <rect x="9" y="1" width="2" height="3" fill="#fde047"/>
+          <rect x="17" y="1" width="2" height="3" fill="#fde047"/>
+          <rect x="11" y="1" width="6" height="2" fill="#facc15"/>
+          <rect x="13" y="1" width="2" height="2" fill="#dc2626"/>
+          <rect x="13" y="1" width="1" height="1" fill="#f87171"/>
+          <rect x="9" y="3" width="10" height="2" fill="#fde047"/>
+          <rect x="10" y="2" width="8" height="1" fill="#ffffff"/>
+          <!-- Face -->
+          <rect x="11" y="5" width="6" height="4" fill="#fed7aa"/>
+          <rect x="11" y="9" width="6" height="1" fill="#fba359"/>
+          <!-- Piercing Hero Eyes -->
+          <rect x="12" y="6" width="1" height="2" fill="#0284c7"/>
+          <rect x="15" y="6" width="1" height="2" fill="#0284c7"/>
+          <rect x="12" y="6" width="1" height="1" fill="#38bdf8"/>
+          <rect x="15" y="6" width="1" height="1" fill="#38bdf8"/>
+          <!-- Sword of Kings (Dragon Sword) with Glowing Aura -->
+          <rect x="4" y="0" width="3" height="15" fill="#38bdf8" opacity="0.8"/>
+          <rect x="5" y="1" width="1" height="14" fill="#ffffff"/>
+          <rect x="4" y="2" width="1" height="12" fill="#fde047"/>
+          <rect x="6" y="2" width="1" height="12" fill="#fde047"/>
+          <rect x="3" y="15" width="5" height="1" fill="#facc15"/>
+          <rect x="5" y="15" width="1" height="1" fill="#dc2626"/>
+          <rect x="5" y="16" width="1" height="3" fill="#1d4ed8"/>
+          <rect x="4" y="19" width="3" height="1" fill="#fde047"/>
+          <!-- Golden Dragon Armor & Tabard -->
+          <rect x="9" y="9" width="2" height="3" fill="#fde047"/>
+          <rect x="17" y="9" width="2" height="3" fill="#fde047"/>
+          <rect x="10" y="9" width="8" height="7" fill="#fde047"/>
+          <rect x="10" y="10" width="8" height="1" fill="#ffffff"/>
+          <rect x="12" y="9" width="4" height="7" fill="#1d4ed8"/>
+          <rect x="13" y="10" width="2" height="4" fill="#facc15"/>
+          <!-- Golden Gauntlets -->
+          <rect x="5" y="16" width="2" height="2" fill="#fde047"/>
+          <rect x="18" y="15" width="2" height="2" fill="#fde047"/>
+          <!-- Golden Dragon Shield -->
+          <rect x="19" y="9" width="6" height="8" fill="#facc15"/>
+          <rect x="20" y="17" width="4" height="2" fill="#facc15"/>
+          <rect x="21" y="19" width="2" height="1" fill="#facc15"/>
+          <rect x="19" y="9" width="1" height="8" fill="#ca8a04"/>
+          <rect x="24" y="9" width="1" height="8" fill="#ca8a04"/>
+          <rect x="20" y="9" width="4" height="1" fill="#fef08a"/>
+          <!-- Red Dragon Crest -->
+          <rect x="21" y="11" width="2" height="4" fill="#dc2626"/>
+          <rect x="20" y="12" width="4" height="2" fill="#dc2626"/>
+          <rect x="21" y="12" width="2" height="2" fill="#ef4444"/>
+          <!-- Belt & Greaves -->
+          <rect x="10" y="16" width="8" height="1" fill="#ca8a04"/>
+          <rect x="10" y="17" width="8" height="4" fill="#1e293b"/>
+          <rect x="10" y="21" width="3" height="4" fill="#fde047"/>
+          <rect x="15" y="21" width="3" height="4" fill="#fde047"/>
+          <rect x="10" y="21" width="1" height="4" fill="#ffffff"/>
+          <rect x="15" y="21" width="1" height="4" fill="#ffffff"/>
+          <rect x="9" y="25" width="4" height="2" fill="#facc15"/>
+          <rect x="15" y="25" width="4" height="2" fill="#facc15"/>
+        </svg>`
+      }
+    };
+
+    /* ==========================================================================
+       WEB AUDIO API SYNTHESIZER (100% Chiptune, Zero External Assets)
+       ========================================================================== */
+    const SoundSynthesizer = {
+      ctx: null,
+      muted: false,
+
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            this.ctx = new AudioContextClass();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      setMuted(state) {
+        this.muted = state;
+      },
+
+      // 1. Cursor / Select: Short 8-bit high-pitch beep
+      playCursor() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, t);
+        osc.frequency.setValueAtTime(1320, t + 0.02);
+
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(t);
+        osc.stop(t + 0.06);
+      },
+
+      // 2. Quest Complete: Cheerful short ascending chime (C5, E5, G5, C6)
+      playQuestComplete() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const t = this.ctx.currentTime;
+        const notes = [
+          { f: 523.25, d: 0.08 }, // C5
+          { f: 659.25, d: 0.08 }, // E5
+          { f: 783.99, d: 0.08 }, // G5
+          { f: 1046.50, d: 0.22 } // C6
+        ];
+
+        let curTime = t;
+        notes.forEach((note) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(note.f, curTime);
+
+          gain.gain.setValueAtTime(0.15, curTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, curTime + note.d);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(curTime);
+          osc.stop(curTime + note.d);
+          curTime += note.d * 0.85;
+        });
+      },
+
+      // 3. Level-Up Fanfare: Iconic, triumphant multi-note retro chiptune
+      playLevelUp() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const t = this.ctx.currentTime;
+        // Classic Dragon Quest Level-Up Melody (Square lead + Triangle bass)
+        const melody = [
+          { f: 392.00, d: 0.09 }, // G4
+          { f: 392.00, d: 0.09 }, // G4
+          { f: 392.00, d: 0.09 }, // G4
+          { f: 493.88, d: 0.12 }, // B4
+          { f: 523.25, d: 0.12 }, // C5
+          { f: 587.33, d: 0.12 }, // D5
+          { f: 659.25, d: 0.15 }, // E5
+          { f: 783.99, d: 0.45 }  // G5 triumphant
+        ];
+
+        const bass = [
+          { f: 196.00, d: 0.09 }, // G3
+          { f: 196.00, d: 0.09 }, // G3
+          { f: 196.00, d: 0.09 }, // G3
+          { f: 246.94, d: 0.12 }, // B3
+          { f: 261.63, d: 0.12 }, // C4
+          { f: 293.66, d: 0.12 }, // D4
+          { f: 329.63, d: 0.15 }, // E4
+          { f: 392.00, d: 0.45 }  // G4
+        ];
+
+        let curTime = t;
+        melody.forEach((note, i) => {
+          // Lead Square Wave
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(note.f, curTime);
+          gain.gain.setValueAtTime(0.18, curTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, curTime + note.d);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(curTime);
+          osc.stop(curTime + note.d);
+
+          // Sub Triangle Wave
+          const bOsc = this.ctx.createOscillator();
+          const bGain = this.ctx.createGain();
+          bOsc.type = 'triangle';
+          bOsc.frequency.setValueAtTime(bass[i].f, curTime);
+          bGain.gain.setValueAtTime(0.22, curTime);
+          bGain.gain.exponentialRampToValueAtTime(0.001, curTime + bass[i].d);
+          bOsc.connect(bGain);
+          bGain.connect(this.ctx.destination);
+          bOsc.start(curTime);
+          bOsc.stop(curTime + bass[i].d);
+
+          curTime += note.d * 0.95;
+        });
+      },
+
+      // 4. Curse / Debuff: Dramatic low-pitch dissonant buzzing / descending glitch sound
+      playCurse() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const t = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
+
+        // Descending dissonant tritone drop
+        osc1.frequency.setValueAtTime(220, t);
+        osc1.frequency.exponentialRampToValueAtTime(55, t + 0.45);
+
+        osc2.frequency.setValueAtTime(311.13, t); // Tritone against A
+        osc2.frequency.exponentialRampToValueAtTime(77.78, t + 0.45);
+
+        // Fast Tremolo LFO
+        const lfo = this.ctx.createOscillator();
+        const lfoGain = this.ctx.createGain();
+        lfo.type = 'square';
+        lfo.frequency.setValueAtTime(24, t);
+        lfoGain.gain.setValueAtTime(0.08, t);
+        lfo.connect(gain.gain);
+        lfo.start(t);
+        lfo.stop(t + 0.5);
+
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(t);
+        osc2.start(t);
+        osc1.stop(t + 0.5);
+        osc2.stop(t + 0.5);
+      },
+
+      // 5. Level-Down: Sad, heavy retro descending drop tone
+      playLevelDown() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const t = this.ctx.currentTime;
+        const notes = [
+          { f: 329.63, d: 0.12 }, // E4
+          { f: 311.13, d: 0.12 }, // Eb4
+          { f: 293.66, d: 0.12 }, // D4
+          { f: 277.18, d: 0.14 }, // C#4
+          { f: 196.00, d: 0.38 }  // G3 deep sad note
+        ];
+
+        let curTime = t;
+        notes.forEach((note) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(note.f, curTime);
+          osc.frequency.exponentialRampToValueAtTime(note.f * 0.9, curTime + note.d);
+
+          gain.gain.setValueAtTime(0.22, curTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, curTime + note.d);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(curTime);
+          osc.stop(curTime + note.d);
+          curTime += note.d * 0.92;
+        });
+      }
+    };
+
+    /* ==========================================================================
+       CANVAS SPARKLE PARTICLES (Golden Burst & Floating Aura)
+       ========================================================================== */
+    const ParticleSystem = {
+      canvas: null,
+      ctx: null,
+      particles: [],
+      animId: null,
+
+      init() {
+        this.canvas = document.getElementById('particle-canvas');
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.loop();
+      },
+
+      resize() {
+        if (!this.canvas) return;
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+      },
+
+      spawnLevelUpSparkles() {
+        if (!this.canvas) return;
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2 + 30;
+
+        for (let i = 0; i < 45; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 2 + Math.random() * 5;
+          this.particles.push({
+            x: cx + (Math.random() - 0.5) * 40,
+            y: cy + (Math.random() - 0.5) * 40,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2.5,
+            size: 3 + Math.floor(Math.random() * 4),
+            color: Math.random() > 0.4 ? '#facc15' : '#ffffff',
+            life: 1.0,
+            decay: 0.015 + Math.random() * 0.02
+          });
+        }
+      },
+
+      spawnCurseEmbers() {
+        if (!this.canvas) return;
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2 + 20;
+
+        for (let i = 0; i < 25; i++) {
+          this.particles.push({
+            x: cx + (Math.random() - 0.5) * 80,
+            y: cy + (Math.random() - 0.5) * 50,
+            vx: (Math.random() - 0.5) * 2,
+            vy: -1 - Math.random() * 2.5,
+            size: 3 + Math.floor(Math.random() * 3),
+            color: Math.random() > 0.5 ? '#c084fc' : '#dc2626',
+            life: 1.0,
+            decay: 0.02 + Math.random() * 0.025
+          });
+        }
+      },
+
+      loop() {
+        if (!this.ctx || !this.canvas) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Ambient aura particles if Hero >= Lv 5
+        if (GameState.level >= 5 && Math.random() < 0.25) {
+          const cx = this.canvas.width / 2;
+          const cy = this.canvas.height / 2 + 30;
+          this.particles.push({
+            x: cx + (Math.random() - 0.5) * 110,
+            y: cy + (Math.random() - 0.5) * 70,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: -0.8 - Math.random() * 1.5,
+            size: 2 + Math.floor(Math.random() * 3),
+            color: Math.random() > 0.3 ? '#facc15' : '#38bdf8',
+            life: 1.0,
+            decay: 0.015
+          });
+        }
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= p.decay;
+
+          if (p.life <= 0) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+
+          this.ctx.fillStyle = p.color;
+          this.ctx.globalAlpha = p.life;
+          this.ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size);
+        }
+        this.ctx.globalAlpha = 1.0;
+
+        this.animId = requestAnimationFrame(() => this.loop());
+      }
+    };
+
+    /* ==========================================================================
+       APPLICATION STATE & PERSISTENCE
+       ========================================================================== */
+    const STORAGE_KEY = 'dq_todo_master_data_v1';
+
+    const GameState = {
+      level: 1,
+      exp: 0,
+      heroName: '로토',
+      soundMuted: false,
+      filter: 'all', // 'all', 'active', 'completed'
+      tasks: [
+        { id: 1, text: '슬라임 3마리 토벌하기', exp: 20, completed: false },
+        { id: 2, text: '마을 촌장에게 약초 배달하기', exp: 40, completed: false },
+        { id: 3, text: '용왕의 성 조사 계획 수립하기', exp: 60, completed: false }
+      ],
+
+      load() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (typeof data.level === 'number') this.level = data.level;
+            if (typeof data.exp === 'number') this.exp = data.exp;
+            if (data.heroName) this.heroName = data.heroName;
+            if (typeof data.soundMuted === 'boolean') this.soundMuted = data.soundMuted;
+            if (Array.isArray(data.tasks)) this.tasks = data.tasks;
+          }
+        } catch (e) {
+          console.warn('Could not load save data:', e);
+        }
+        SoundSynthesizer.setMuted(this.soundMuted);
+      },
+
+      save() {
+        try {
+          const data = {
+            level: this.level,
+            exp: this.exp,
+            heroName: this.heroName,
+            soundMuted: this.soundMuted,
+            tasks: this.tasks
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+          console.warn('Could not save data:', e);
+        }
+      },
+
+      reset() {
+        this.level = 1;
+        this.exp = 0;
+        this.heroName = '로토';
+        this.tasks = [
+          { id: 1, text: '슬라임 3마리 토벌하기', exp: 20, completed: false },
+          { id: 2, text: '마을 촌장에게 약초 배달하기', exp: 40, completed: false },
+          { id: 3, text: '용왕의 성 조사 계획 수립하기', exp: 60, completed: false }
+        ];
+        this.save();
+      }
+    };
+
+    /* ==========================================================================
+       UI CONTROLLER & EVENT HANDLERS
+       ========================================================================== */
+    const UI = {
+      init() {
+        // Build initial segments
+        this.buildExpSegments();
+
+        // Render everything
+        this.renderAll();
+
+        // Bind events
+        this.bindEvents();
+
+        // Start particle engine
+        ParticleSystem.init();
+      },
+
+      buildExpSegments() {
+        const container = document.getElementById('exp-bar-segments');
+        container.innerHTML = '';
+        for (let i = 0; i < 10; i++) {
+          const seg = document.createElement('div');
+          seg.className = 'exp-segment';
+          seg.id = `exp-seg-${i}`;
+          container.appendChild(seg);
+        }
+      },
+
+      renderAll() {
+        this.renderStatus();
+        this.renderHeroStage();
+        this.renderTodoList();
+        this.renderAudioState();
+      },
+
+      renderStatus() {
+        // Hero Name & Class
+        document.getElementById('hero-name-text').textContent = GameState.heroName;
+        
+        const tier = Math.min(5, Math.max(1, GameState.level));
+        const heroInfo = HERO_DATA[tier];
+        document.getElementById('hero-class-title').textContent = heroInfo.title;
+        document.getElementById('level-num-display').textContent = GameState.level;
+
+        // EXP text
+        document.getElementById('exp-current-text').textContent = GameState.exp;
+        document.getElementById('exp-percent-text').textContent = `${GameState.exp}%`;
+
+        // Stepped EXP segments (10 blocks = 10% each)
+        const filledCount = Math.floor(GameState.exp / 10);
+        for (let i = 0; i < 10; i++) {
+          const seg = document.getElementById(`exp-seg-${i}`);
+          if (seg) {
+            if (i < filledCount) {
+              seg.classList.add('filled');
+            } else {
+              seg.classList.remove('filled');
+            }
+          }
+        }
+
+        // Equipment labels
+        document.getElementById('gear-rank-text').textContent = `Lv.${GameState.level} ${heroInfo.title}`;
+        document.getElementById('gear-equip-text').textContent = heroInfo.equipment;
+
+        // Active task count
+        const activeCount = GameState.tasks.filter(t => !t.completed).length;
+        document.getElementById('active-count-text').textContent = activeCount;
+      },
+
+      renderHeroStage() {
+        const tier = Math.min(5, Math.max(1, GameState.level));
+        const heroInfo = HERO_DATA[tier];
+        const mount = document.getElementById('hero-svg-mount');
+        mount.innerHTML = heroInfo.svg;
+      },
+
+      renderTodoList() {
+        const listContainer = document.getElementById('todo-list');
+        listContainer.innerHTML = '';
+
+        let filtered = GameState.tasks;
+        if (GameState.filter === 'active') {
+          filtered = GameState.tasks.filter(t => !t.completed);
+        } else if (GameState.filter === 'completed') {
+          filtered = GameState.tasks.filter(t => t.completed);
+        }
+
+        if (filtered.length === 0) {
+          listContainer.innerHTML = `
+            <div class="empty-quest-state">
+              ❖ 수락된 퀘스트가 없습니다.<br>
+              상단 [COMMAND: ADD QUEST]를 통해 새로운 퀘스트에 도전하세요!
+            </div>
+          `;
+          return;
+        }
+
+        filtered.forEach(task => {
+          const item = document.createElement('div');
+          item.className = `todo-item ${task.completed ? 'completed' : ''}`;
+          item.dataset.id = task.id;
+
+          item.innerHTML = `
+            <span class="todo-pointer">▶</span>
+            <div class="todo-left-content" title="클릭하여 완료/취소">
+              <span class="retro-checkbox">
+                <span class="bracket">[</span>
+                <span class="mark">${task.completed ? '★' : ' '}</span>
+                <span class="bracket">]</span>
+              </span>
+              <span class="todo-text">${this.escapeHtml(task.text)}</span>
+            </div>
+            <span class="exp-badge exp-badge-${task.exp}">+${task.exp} EXP</span>
+            <button class="btn-delete-quest" title="퀘스트 포기 (삭제)" data-id="${task.id}">[✕]</button>
+          `;
+
+          listContainer.appendChild(item);
+        });
+      },
+
+      renderAudioState() {
+        const icon = document.getElementById('sound-icon');
+        const text = document.getElementById('sound-text');
+        if (GameState.soundMuted) {
+          icon.textContent = '🔇';
+          text.textContent = 'SFX OFF';
+        } else {
+          icon.textContent = '🔊';
+          text.textContent = 'SFX ON';
+        }
+      },
+
+      setDialogue(message, type = 'normal') {
+        const dialogueEl = document.getElementById('dialogue-text');
+        dialogueEl.className = 'dialogue-text';
+        if (type === 'levelup') dialogueEl.classList.add('level-up-msg');
+        if (type === 'curse') dialogueEl.classList.add('curse-msg');
+        dialogueEl.textContent = `▶ ${message}`;
+      },
+
+      setAnnouncement(message, isLevelUp = false) {
+        const announceEl = document.getElementById('level-announcement');
+        announceEl.textContent = message;
+        if (isLevelUp) {
+          announceEl.classList.add('flash-lvlup');
+          setTimeout(() => {
+            announceEl.classList.remove('flash-lvlup');
+          }, 4500);
+        }
+      },
+
+      triggerLevelUpVisuals() {
+        // 1. Screen flash
+        document.body.classList.remove('screen-flash');
+        void document.body.offsetWidth;
+        document.body.classList.add('screen-flash');
+        setTimeout(() => document.body.classList.remove('screen-flash'), 600);
+
+        // 2. Hero victory jump
+        const wrapper = document.getElementById('hero-sprite-wrapper');
+        wrapper.classList.remove('victory-jump', 'idle-bob');
+        void wrapper.offsetWidth;
+        wrapper.classList.add('victory-jump');
+        setTimeout(() => {
+          wrapper.classList.remove('victory-jump');
+          wrapper.classList.add('idle-bob');
+        }, 850);
+
+        // 3. Golden light beam
+        const beam = document.getElementById('light-beam');
+        beam.classList.add('active');
+        setTimeout(() => beam.classList.remove('active'), 2500);
+
+        // 4. Sparkle burst
+        ParticleSystem.spawnLevelUpSparkles();
+      },
+
+      triggerDebuffVisuals() {
+        // 1. Screen shake
+        document.body.classList.remove('curse-shake');
+        void document.body.offsetWidth;
+        document.body.classList.add('curse-shake');
+        setTimeout(() => document.body.classList.remove('curse-shake'), 500);
+
+        // 2. Purple vignette flash
+        const vig = document.getElementById('curse-vignette');
+        vig.classList.add('active');
+        setTimeout(() => vig.classList.remove('active'), 650);
+
+        // 3. Hero curse stagger
+        const wrapper = document.getElementById('hero-sprite-wrapper');
+        wrapper.classList.remove('curse-stagger', 'idle-bob');
+        void wrapper.offsetWidth;
+        wrapper.classList.add('curse-stagger');
+        setTimeout(() => {
+          wrapper.classList.remove('curse-stagger');
+          wrapper.classList.add('idle-bob');
+        }, 650);
+
+        // 4. Purple skull embers
+        ParticleSystem.spawnCurseEmbers();
+      },
+
+      escapeHtml(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      },
+
+      bindEvents() {
+        // Sound toggle button
+        document.getElementById('btn-sound-toggle').addEventListener('click', () => {
+          GameState.soundMuted = !GameState.soundMuted;
+          SoundSynthesizer.setMuted(GameState.soundMuted);
+          this.renderAudioState();
+          GameState.save();
+          if (!GameState.soundMuted) {
+            SoundSynthesizer.playCursor();
+          }
+        });
+
+        // Add Quest Form
+        const form = document.getElementById('quest-form');
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = document.getElementById('quest-input');
+          const diffSelect = document.getElementById('quest-difficulty');
+          const title = input.value.trim();
+          if (!title) return;
+
+          const expVal = parseInt(diffSelect.value, 10) || 20;
+          const newTask = {
+            id: Date.now(),
+            text: title,
+            exp: expVal,
+            completed: false
+          };
+
+          GameState.tasks.unshift(newTask);
+          GameState.save();
+
+          input.value = '';
+          SoundSynthesizer.playCursor();
+          this.renderTodoList();
+          this.renderStatus();
+          this.setDialogue(`새로운 퀘스트 '${newTask.text}'(+${newTask.exp} EXP)을(를) 수락했다!`);
+        });
+
+        // Todo List delegation: click check / delete
+        const todoContainer = document.getElementById('todo-list');
+        todoContainer.addEventListener('click', (e) => {
+          const deleteBtn = e.target.closest('.btn-delete-quest');
+          if (deleteBtn) {
+            const taskId = parseInt(deleteBtn.dataset.id, 10);
+            this.deleteTask(taskId);
+            return;
+          }
+
+          const checkArea = e.target.closest('.todo-left-content');
+          if (checkArea) {
+            const item = checkArea.closest('.todo-item');
+            const taskId = parseInt(item.dataset.id, 10);
+            this.toggleTask(taskId);
+          }
+        });
+
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+          tab.addEventListener('click', (e) => {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            GameState.filter = e.currentTarget.dataset.filter;
+            SoundSynthesizer.playCursor();
+            this.renderTodoList();
+          });
+        });
+
+        // Hero Name editing
+        document.getElementById('hero-name-btn').addEventListener('click', () => {
+          SoundSynthesizer.playCursor();
+          const newName = prompt('용사의 새 이름을 입력하십시오:', GameState.heroName);
+          if (newName && newName.trim()) {
+            GameState.heroName = newName.trim().slice(0, 10);
+            GameState.save();
+            this.renderStatus();
+            this.setDialogue(`용사의 칭호가 '${GameState.heroName}'(으)로 갱신되었다!`);
+          }
+        });
+
+        // Menu / Sound test modal
+        const modal = document.getElementById('sound-modal');
+        document.getElementById('btn-sound-test-modal').addEventListener('click', () => {
+          SoundSynthesizer.playCursor();
+          modal.classList.add('active');
+        });
+        document.getElementById('btn-close-modal').addEventListener('click', () => {
+          SoundSynthesizer.playCursor();
+          modal.classList.remove('active');
+        });
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.classList.remove('active');
+        });
+
+        // Sound test buttons
+        document.getElementById('test-sfx-cursor').addEventListener('click', () => SoundSynthesizer.playCursor());
+        document.getElementById('test-sfx-complete').addEventListener('click', () => SoundSynthesizer.playQuestComplete());
+        document.getElementById('test-sfx-levelup').addEventListener('click', () => {
+          SoundSynthesizer.playLevelUp();
+          this.triggerLevelUpVisuals();
+        });
+        document.getElementById('test-sfx-curse').addEventListener('click', () => {
+          SoundSynthesizer.playCurse();
+          this.triggerDebuffVisuals();
+        });
+        document.getElementById('test-sfx-leveldown').addEventListener('click', () => {
+          SoundSynthesizer.playLevelDown();
+          this.triggerDebuffVisuals();
+        });
+
+        // Reset button
+        document.getElementById('btn-reset-data').addEventListener('click', () => {
+          if (confirm('정말로 모험의 서를 초기화하시겠습니까? (레벨 1로 복구됩니다)')) {
+            GameState.reset();
+            modal.classList.remove('active');
+            this.renderAll();
+            SoundSynthesizer.playLevelDown();
+            this.setDialogue('모험의 서가 초기화되어 레벨 1로 돌아갔습니다.');
+            this.setAnnouncement('★ 용사의 여정이 새롭게 시작되었다! ★');
+          }
+        });
+      },
+
+      /* ==========================================================================
+         CORE GAME MECHANICS: TASK TOGGLE & EXP CALCULATION
+         ========================================================================== */
+      toggleTask(taskId) {
+        const task = GameState.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        if (!task.completed) {
+          // ================= TASK COMPLETE (EXP GAIN) =================
+          task.completed = true;
+          GameState.exp += task.exp;
+
+          let leveledUp = false;
+          let oldLevel = GameState.level;
+
+          while (GameState.exp >= 100) {
+            GameState.level += 1;
+            GameState.exp -= 100;
+            leveledUp = true;
+          }
+
+          GameState.save();
+          this.renderTodoList();
+          this.renderStatus();
+
+          if (leveledUp) {
+            // Level Up Event
+            SoundSynthesizer.playLevelUp();
+            this.triggerLevelUpVisuals();
+            this.renderHeroStage();
+
+            const heroInfo = HERO_DATA[Math.min(5, GameState.level)];
+            this.setAnnouncement(`★ LEVEL UP! Lv. ${GameState.level} ★`, true);
+            this.setDialogue(`LEVEL UP! [${GameState.heroName}](은)는 레벨 ${GameState.level} [${heroInfo.title}](으)로 승급했다!`, 'levelup');
+          } else {
+            // Regular Quest Complete
+            SoundSynthesizer.playQuestComplete();
+            this.setDialogue(`[${GameState.heroName}](은)는 '${task.text}'을(를) 완수했다! (+${task.exp} EXP)`);
+          }
+
+        } else {
+          // ================= TASK UNCHECK (CURSE & DEBUFF PENALTY) =================
+          task.completed = false;
+          GameState.exp -= task.exp;
+
+          // Trigger Curse Debuff Visuals & Audio
+          SoundSynthesizer.playCurse();
+          this.triggerDebuffVisuals();
+
+          let leveledDown = false;
+
+          if (GameState.exp < 0) {
+            if (GameState.level > 1) {
+              while (GameState.exp < 0 && GameState.level > 1) {
+                GameState.level -= 1;
+                GameState.exp += 100;
+                leveledDown = true;
+              }
+              if (GameState.exp < 0) GameState.exp = 0;
+
+              // Play sad Level Down tone
+              setTimeout(() => {
+                SoundSynthesizer.playLevelDown();
+              }, 200);
+
+              GameState.save();
+              this.renderTodoList();
+              this.renderStatus();
+              this.renderHeroStage();
+
+              this.setAnnouncement(`▼ 레벨 다운... Lv. ${GameState.level} ▼`);
+              this.setDialogue(`저주가 내려 힘을 잃었다! [${GameState.heroName}](은)는 레벨 ${GameState.level}(으)로 강등되었다...`, 'curse');
+              return;
+            } else {
+              // Level 1 minimum clamp
+              GameState.exp = 0;
+            }
+          }
+
+          GameState.save();
+          this.renderTodoList();
+          this.renderStatus();
+          this.setDialogue(`끔찍한 저주가 내렸다! 퀘스트가 취소되어 ${task.exp} EXP를 잃었다!`, 'curse');
+        }
+      },
+
+      deleteTask(taskId) {
+        SoundSynthesizer.playCursor();
+        const index = GameState.tasks.findIndex(t => t.id === taskId);
+        if (index !== -1) {
+          const removed = GameState.tasks.splice(index, 1)[0];
+          GameState.save();
+          this.renderTodoList();
+          this.renderStatus();
+          this.setDialogue(`퀘스트 '${removed.text}'을(를) 수첩에서 지웠다.`);
+        }
+      }
+    };
+
+    // Initialize Game on DOM Content Loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      GameState.load();
+      UI.init();
+    });
+  </script>
+</body>
 </html>
