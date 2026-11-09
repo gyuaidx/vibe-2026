@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>반응형 다이어리 달력 (Responsive Calendar)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pastel: {
+              cream: '#FFFDF9',
+              sand: '#F7F4EE',
+              tab: '#F2EDE4',
+              tabBorder: '#D8D1C5',
+              card: '#FFFFFF',
+              border: '#E8E2D8',
+              text: '#37352F',
+              subtext: '#787774',
+              red: '#EF4444',
+              redLight: '#FEE2E2',
+              yellow: '#F59E0B',
+              yellowLight: '#FEF3C7',
+              accent: '#6366F1',
+              accentSoft: '#EEF2FF',
+              blue: '#3B82F6',
+              blueSoft: '#EFF6FF'
+            }
+          },
+          boxShadow: {
+            'sketch': '0 4px 20px -2px rgba(55, 53, 47, 0.08), 0 2px 6px -1px rgba(55, 53, 47, 0.04)',
+            'tab': '0 -2px 10px rgba(0, 0, 0, 0.03)'
+          }
+        }
+      }
+    };
+  </script>
+  <!-- React & ReactDOM & Babel Standalone -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Google Fonts (Pretendard & Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: #F8F9FA;
+      color: #37352F;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* 스케치 느낌의 세련된 탭 윤곽선 효과 */
+    .folder-tab {
+      position: relative;
+      background-color: #FFFFFF;
+      border: 2px solid #2D3748;
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+    }
+    .folder-body {
+      border: 2px solid #2D3748;
+      border-radius: 0 16px 16px 16px;
+      background-color: #FFFFFF;
+    }
+    @media (max-width: 640px) {
+      .folder-body {
+        border-radius: 12px;
+      }
+    }
+    /* 커스텀 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- Lucide Icons (인라인 경량 SVG 컴포넌트) ---
+    const Icons = {
+      Check: ({ className = "w-4 h-4", strokeWidth = 2.5 }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ),
+      ChevronLeft: ({ className = "w-5 h-5", strokeWidth = 2 }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      ),
+      ChevronRight: ({ className = "w-5 h-5", strokeWidth = 2 }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      ),
+      ArrowLeft: ({ className = "w-5 h-5", strokeWidth = 2 }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+      ),
+      ExternalLink: ({ className = "w-4 h-4", strokeWidth = 2 }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          <polyline points="15 3 21 3 21 9" />
+          <line x1="10" y1="14" x2="21" y2="3" />
+        </svg>
+      ),
+      Star: ({ className = "w-4 h-4", fill = "currentColor" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      ),
+      Calendar: ({ className = "w-5 h-5" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      ),
+      MapPin: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      ),
+      FileText: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      ),
+      Link: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+      ),
+      Bookmark: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+        </svg>
+      ),
+      Sparkles: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+        </svg>
+      ),
+      CheckCircle2: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      ),
+      Copy: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+        </svg>
+      ),
+      AlertCircle: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      ),
+      RotateCcw: ({ className = "w-4 h-4" }) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      )
+    };
+
+    // --- 로컬 스토리지 키 및 초기 샘플 데이터 설정 ---
+    const STORAGE_KEY = "RESPONSIVE_CALENDAR_APP_DATA_V1";
+
+    const INITIAL_SAMPLE_DATA = {
+      // 2026년 11월 샘플 데이터 (초기 방문 시 편리하게 체험 가능)
+      "2026-11-02": { status: 1, memo: "11월 첫 주 스터디 모임", location: "강남역 북카페", importantSchedule: "React 심화 발표", link: "https://react.dev", etc: "노트북 지참 필수" },
+      "2026-11-04": { status: 1, memo: "헬스장 PT 수업", location: "스포애니 강남점", importantSchedule: "하체 루틴 5세트", link: "https://youtube.com", etc: "수분 보충 충분히 하기" },
+      "2026-11-06": { status: 1, memo: "팀 프로젝트 코드 리뷰", location: "슬랙 화상 회의", importantSchedule: "PR #104 머지", link: "https://github.com", etc: "테스트 커버리지 90% 이상 유지" },
+      "2026-11-09": { status: 2, memo: "신규 프로젝트 기획안 제출일", location: "본사 대회의실", importantSchedule: "임원진 보고 세션 (14:00)", link: "https://notion.so", etc: "스케치 목업 기반 웹앱 시연" },
+      "2026-11-13": { status: 1, memo: "금요 러닝 크루", location: "반포 한강공원", importantSchedule: "5km 페이스 조절", link: "", etc: "러닝화 세탁해둠" },
+      "2026-11-18": { status: 2, memo: "개발자 컨퍼런스 참가", location: "코엑스 그랜드볼룸", importantSchedule: "AI Agent 세션 청강", link: "https://google.com", etc: "명함 챙기기" },
+      "2026-11-20": { status: 1, memo: "알고리즘 코딩테스트 스터디", location: "디스코드", importantSchedule: "DP 문제 3선 풀이", link: "https://leetcode.com", etc: "풀이 블로그 정리" },
+      "2026-11-25": { status: 2, memo: "월간 종합 마감 회의", location: "사내 회의실 B", importantSchedule: "11월 성과 보고서 발표", link: "https://figma.com", etc: "발표 슬라이드 사전 검수" },
+      "2026-11-27": { status: 1, memo: "책 읽기 클럽", location: "서초 국립중앙도서관", importantSchedule: "클린 코드 4장 토론", link: "", etc: "요약본 공유" }
+    };
+
+    // 유효한 URL 검증 함수
+    function isValidUrl(string) {
+      if (!string || typeof string !== 'string') return false;
+      const trimmed = string.trim();
+      // http:// 또는 https:// 로 시작하는 정규식
+      const urlPattern = /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/i;
+      if (!urlPattern.test(trimmed)) return false;
+      try {
+        const parsed = new URL(trimmed);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // 도메인 추출 함수
+    function getDomainFromUrl(urlStr) {
+      try {
+        const parsed = new URL(urlStr.trim());
+        return parsed.hostname;
+      } catch (e) {
+        return urlStr;
+      }
+    }
+
+    // 날짜 포맷 헬퍼 (YYYY-MM-DD)
+    function formatDateKey(year, month, day) {
+      const m = String(month).padStart(2, '0');
+      const d = String(day).padStart(2, '0');
+      return `${year}-${m}-${d}`;
+    }
+
+    // 요일 이름 (일 ~ 토)
+    const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+    // ==========================================
+    // 메인 App 컴포넌트
+    // ==========================================
+    function App() {
+      // 1. 상태 관리: 데이터 로드 & LocalStorage 동기화
+      const [records, setRecords] = useState(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            return JSON.parse(saved);
+          }
+        } catch (e) {
+          console.error("LocalStorage 로드 실패:", e);
+        }
+        return INITIAL_SAMPLE_DATA;
+      });
+
+      // LocalStorage 저장
+      useEffect(() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        } catch (e) {
+          console.error("LocalStorage 저장 실패:", e);
+        }
+      }, [records]);
+
+      // 현재 기준 날짜 (2026년 11월 기준)
+      const [currentYear, setCurrentYear] = useState(2026);
+      const [currentMonth, setCurrentMonth] = useState(11); // 1 ~ 12
+
+      // 화면 모드 ('calendar' 또는 'detail')
+      const [viewMode, setViewMode] = useState('calendar');
+      const [selectedDate, setSelectedDate] = useState('2026-11-09');
+
+      // 토스트 메시지
+      const [toastMessage, setToastMessage] = useState(null);
+      const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 2500);
+      };
+
+      // 월 이동 함수
+      const handlePrevMonth = () => {
+        if (currentMonth === 1) {
+          setCurrentYear(prev => prev - 1);
+          setCurrentMonth(12);
+        } else {
+          setCurrentMonth(prev => prev - 1);
+        }
+      };
+
+      const handleNextMonth = () => {
+        if (currentMonth === 12) {
+          setCurrentYear(prev => prev + 1);
+          setCurrentMonth(1);
+        } else {
+          setCurrentMonth(prev => prev + 1);
+        }
+      };
+
+      // 오늘(2026-11-09)로 이동
+      const handleGoToToday = () => {
+        setCurrentYear(2026);
+        setCurrentMonth(11);
+      };
+
+      // 3단계 순환 원형 토글 함수
+      // 0: 기본(투명/회색 테두리) -> 1: 출석(빨간색 체크) -> 2: 중요(노란색) -> 0: 리셋
+      const handleCycleToggle = (dateKey, e) => {
+        if (e) e.stopPropagation(); // 셀 클릭(상세페이지 이동) 방지
+        setRecords(prev => {
+          const currentRecord = prev[dateKey] || { status: 0 };
+          const nextStatus = (currentRecord.status + 1) % 3;
+          return {
+            ...prev,
+            [dateKey]: {
+              ...currentRecord,
+              status: nextStatus
+            }
+          };
+        });
+      };
+
+      // 특정 날짜의 상세 입력 수정
+      const handleUpdateDetail = (dateKey, field, value) => {
+        setRecords(prev => {
+          const currentRecord = prev[dateKey] || { status: 0 };
+          return {
+            ...prev,
+            [dateKey]: {
+              ...currentRecord,
+              [field]: value
+            }
+          };
+        });
+      };
+
+      // 날짜 셀 클릭 시 상세 화면으로 이동
+      const handleOpenDetail = (dateKey) => {
+        setSelectedDate(dateKey);
+        setViewMode('detail');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      // 뒤로가기
+      const handleBackToCalendar = () => {
+        setViewMode('calendar');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      // 모든 데이터 초기화 (리셋)
+      const handleResetAllData = () => {
+        if (confirm("모든 일정 및 출석 데이터를 초기 샘플 상태로 리셋하시겠습니까?")) {
+          setRecords(INITIAL_SAMPLE_DATA);
+          showToast("데이터가 초기 상태로 복원되었습니다.");
+        }
+      };
+
+      // ==========================================
+      // 통계 계산 (현재 선택된 월 기준 실시간 집계)
+      // ==========================================
+      const monthStats = useMemo(() => {
+        const totalDaysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        let attendanceCount = 0; // status === 1 (빨간색 체크)
+        let importantCount = 0;  // status === 2 (노란색 중요)
+        let recordedDaysCount = 0;
+
+        for (let day = 1; day <= totalDaysInMonth; day++) {
+          const dateKey = formatDateKey(currentYear, currentMonth, day);
+          const item = records[dateKey];
+          if (item) {
+            if (item.status === 1) attendanceCount++;
+            if (item.status === 2) importantCount++;
+            if (item.memo || item.location || item.importantSchedule || item.link || item.etc) {
+              recordedDaysCount++;
+            }
+          }
+        }
+
+        const attendanceRate = totalDaysInMonth > 0 
+          ? Math.round((attendanceCount / totalDaysInMonth) * 100) 
+          : 0;
+
+        return {
+          totalDaysInMonth,
+          attendanceCount,
+          importantCount,
+          attendanceRate,
+          recordedDaysCount
+        };
+      }, [records, currentYear, currentMonth]);
+
+      return (
+        <div className="min-h-screen py-6 px-3 sm:px-6 lg:px-8 max-w-5xl mx-auto flex flex-col justify-between">
+          {/* 토스트 알림 */}
+          {toastMessage && (
+            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-medium animate-bounce">
+              <Icons.Sparkles className="w-4 h-4 text-amber-400" />
+              <span>{toastMessage}</span>
+            </div>
+          )}
+
+          {/* 메인 상단 앱 타이틀 & 간단한 소개 */}
+          <header className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-indigo-500 text-white rounded-lg shadow-sm">
+                  <Icons.Calendar className="w-5 h-5" />
+                </span>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-800">
+                  반응형 다이어리 달력
+                </h1>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  LocalStorage 연동
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                스케치 손그림 구조를 충실히 구현한 모던 파스텔 톤 출석체크 & 상세 일정 매니저
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={handleResetAllData}
+                className="text-xs flex items-center gap-1.5 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                title="데이터를 샘플 데이터로 리셋"
+              >
+                <Icons.RotateCcw className="w-3.5 h-3.5" />
+                <span>샘플 복원</span>
+              </button>
+            </div>
+          </header>
+
+          {/* 메인 뷰 전환 렌더링 */}
+          <main className="flex-1">
+            {viewMode === 'calendar' ? (
+              <CalendarView
+                currentYear={currentYear}
+                currentMonth={currentMonth}
+                records={records}
+                stats={monthStats}
+                onPrevMonth={handlePrevMonth}
+                onNextMonth={handleNextMonth}
+                onGoToToday={handleGoToToday}
+                onCycleToggle={handleCycleToggle}
+                onOpenDetail={handleOpenDetail}
+              />
+            ) : (
+              <DetailView
+                selectedDate={selectedDate}
+                record={records[selectedDate] || { status: 0, memo: '', location: '', importantSchedule: '', link: '', etc: '' }}
+                onBack={handleBackToCalendar}
+                onUpdateField={(field, val) => handleUpdateDetail(selectedDate, field, val)}
+                onCycleToggle={(e) => handleCycleToggle(selectedDate, e)}
+                showToast={showToast}
+              />
+            )}
+          </main>
+
+          {/* 푸터 */}
+          <footer className="mt-10 pt-4 border-t border-slate-200 text-center text-xs text-slate-400">
+            손그림 스케치 1 (달력 그리드 & 돌출 탭 & 통계 대시보드) & 스케치 2 (5개 고정 필드 & 링크 프리뷰 카드) 완벽 지원
+          </footer>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 1. 메인 달력 뷰 컴포넌트 (스케치 1)
+    // ==========================================
+    function CalendarView({
+      currentYear,
+      currentMonth,
+      records,
+      stats,
+      onPrevMonth,
+      onNextMonth,
+      onGoToToday,
+      onCycleToggle,
+      onOpenDetail
+    }) {
+      // 해당 월의 날짜 그리드 계산
+      const calendarCells = useMemo(() => {
+        const firstDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0(일) ~ 6(토)
+        const daysInCurrentMonth = new Date(currentYear, currentMonth, 0).getDate();
+        const prevMonthLastDate = new Date(currentYear, currentMonth - 1, 0).getDate();
+
+        const cells = [];
+
+        // 1. 이전 달 날짜 패딩
+        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+          const day = prevMonthLastDate - i;
+          const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
+          const prevYearNum = currentMonth === 1 ? currentYear - 1 : currentYear;
+          const key = formatDateKey(prevYearNum, prevMonthNum, day);
+          cells.push({
+            dateKey: key,
+            dayNumber: day,
+            isCurrentMonth: false,
+            year: prevYearNum,
+            month: prevMonthNum
+          });
+        }
+
+        // 2. 현재 달 날짜들
+        for (let day = 1; day <= daysInCurrentMonth; day++) {
+          const key = formatDateKey(currentYear, currentMonth, day);
+          cells.push({
+            dateKey: key,
+            dayNumber: day,
+            isCurrentMonth: true,
+            year: currentYear,
+            month: currentMonth
+          });
+        }
+
+        // 3. 다음 달 날짜 패딩 (7의 배수 맞춤, 보통 35개 또는 42개)
+        const totalCurrentCells = cells.length;
+        const remainingCells = (7 - (totalCurrentCells % 7)) % 7;
+        const nextMonthNum = currentMonth === 12 ? 1 : currentMonth + 1;
+        const nextYearNum = currentMonth === 12 ? currentYear + 1 : currentYear;
+
+        for (let day = 1; day <= remainingCells; day++) {
+          const key = formatDateKey(nextYearNum, nextMonthNum, day);
+          cells.push({
+            dateKey: key,
+            dayNumber: day,
+            isCurrentMonth: false,
+            year: nextYearNum,
+            month: nextMonthNum
+          });
+        }
+
+        return cells;
+      }, [currentYear, currentMonth]);
+
+      return (
+        <div className="space-y-6">
+          {/* 상단 통계/요약 대시보드 카드 (요구사항 2) */}
+          <section className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 1) 출석률 카운터 */}
+            <div className="bg-gradient-to-br from-red-50/70 to-rose-50/40 border border-red-100 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm">
+                    <Icons.Check className="w-5 h-5 text-white" strokeWidth={3} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">출석률 카운터</h3>
+                    <p className="text-sm font-bold text-slate-800">{currentMonth}월 출석 현황</p>
+                  </div>
+                </div>
+                <span className="text-xl font-black text-red-600">
+                  {stats.attendanceRate}%
+                </span>
+              </div>
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-slate-600 mb-1 font-medium">
+                  <span>{currentMonth}월 출석률 {stats.attendanceRate}%</span>
+                  <span className="font-bold text-red-600">[{stats.attendanceCount}/{stats.totalDaysInMonth}일]</span>
+                </div>
+                {/* 프로그레스 바 */}
+                <div className="w-full bg-red-100 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-red-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${Math.min(stats.attendanceRate, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2) 중요 날짜 카운터 */}
+            <div className="bg-gradient-to-br from-amber-50/70 to-yellow-50/40 border border-amber-100 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-amber-400 text-white flex items-center justify-center shadow-sm">
+                    <Icons.Star className="w-4 h-4 text-white" fill="white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">중요 날짜 카운터</h3>
+                    <p className="text-sm font-bold text-slate-800">{currentMonth}월 중요 일정</p>
+                  </div>
+                </div>
+                <span className="text-xl font-black text-amber-600">
+                  {stats.importantCount}개
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-slate-600 font-medium bg-amber-100/50 px-3 py-2 rounded-lg">
+                <span>노란색 원으로 마킹된 날짜</span>
+                <span className="font-bold text-amber-700">중요 날짜 {stats.importantCount}개</span>
+              </div>
+            </div>
+
+            {/* 3) 토글 상태 안내 가이드 카드 */}
+            <div className="sm:col-span-2 lg:col-span-1 bg-slate-50/80 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-500">원형 버튼 3단계 순환 안내</span>
+                <span className="text-[11px] text-indigo-600 font-medium">원 클릭 시 즉시 변경</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-white p-2 rounded-lg border border-slate-200 flex flex-col items-center">
+                  <div className="w-5 h-5 rounded-full border-2 border-slate-300 mb-1"></div>
+                  <span className="text-[11px] text-slate-500">기본 상태</span>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-red-200 flex flex-col items-center">
+                  <div className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center mb-1">
+                    <Icons.Check className="w-3 h-3 text-white" strokeWidth={3} />
+                  </div>
+                  <span className="text-[11px] font-medium text-red-600">1회: 출석</span>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-amber-200 flex flex-col items-center">
+                  <div className="w-5 h-5 rounded-full bg-amber-400 mb-1"></div>
+                  <span className="text-[11px] font-medium text-amber-600">2회: 중요</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 달력 컨테이너 (스케치 1의 돌출 탭 + 메인 사각 프레임 구조) */}
+          <div className="relative pt-10">
+            {/* 스케치 1 상단 좌측 돌출 사각 탭 영역 */}
+            <div className="absolute top-0 left-0 sm:left-4 z-10">
+              <div className="inline-flex items-center bg-white border-2 border-slate-800 border-b-0 rounded-t-xl px-5 py-2.5 shadow-sm space-x-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                <span className="text-base sm:text-lg font-black tracking-wide text-slate-900">
+                  {currentYear}년 {currentMonth}월
+                </span>
+                <button
+                  onClick={onGoToToday}
+                  className="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-medium transition-colors"
+                  title="오늘(2026년 11월)로 이동"
+                >
+                  오늘
+                </button>
+              </div>
+            </div>
+
+            {/* 메인 달력 프레임 (스케치 1 본체) */}
+            <div className="bg-white border-2 border-slate-800 rounded-b-2xl sm:rounded-tr-2xl shadow-lg overflow-hidden">
+              {/* 요일 헤더 (일 ~ 토) */}
+              <div className="grid grid-cols-7 border-b-2 border-slate-800 bg-slate-100/70 text-center font-bold text-xs sm:text-sm py-2.5">
+                {DAY_NAMES.map((dayName, idx) => {
+                  const isSunday = idx === 0;
+                  const isSaturday = idx === 6;
+                  return (
+                    <div
+                      key={dayName}
+                      className={`tracking-wider ${
+                        isSunday ? 'text-red-500' : isSaturday ? 'text-blue-500' : 'text-slate-700'
+                      }`}
+                    >
+                      {dayName}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 달력 그리드 본체 (주 7일 기준 격자무늬 셀) */}
+              <div className="grid grid-cols-7 divide-x divide-y divide-slate-300">
+                {calendarCells.map((cell) => {
+                  const record = records[cell.dateKey] || { status: 0 };
+                  const isToday = cell.dateKey === '2026-11-09';
+                  const hasDetails = Boolean(
+                    record.memo || record.location || record.importantSchedule || record.link || record.etc
+                  );
+
+                  return (
+                    <div
+                      key={cell.dateKey}
+                      onClick={() => onOpenDetail(cell.dateKey)}
+                      className={`relative min-h-[90px] sm:min-h-[110px] p-1.5 sm:p-2 transition-all duration-150 cursor-pointer group flex flex-col justify-between ${
+                        cell.isCurrentMonth ? 'bg-white hover:bg-indigo-50/40' : 'bg-slate-50/60 text-slate-400'
+                      } ${isToday ? 'ring-2 ring-indigo-500 ring-inset bg-indigo-50/20' : ''}`}
+                    >
+                      {/* 셀 상단: 좌측 날짜 숫자 & 우측 3단계 순환 원형 토글 */}
+                      <div className="flex items-start justify-between w-full">
+                        {/* 좌측 상단: 해당 날짜 숫자 */}
+                        <div className="flex items-center space-x-1">
+                          <span
+                            className={`text-xs sm:text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full ${
+                              isToday
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : cell.isCurrentMonth
+                                ? 'text-slate-800'
+                                : 'text-slate-400'
+                            }`}
+                          >
+                            {cell.dayNumber}
+                          </span>
+                          {isToday && (
+                            <span className="hidden sm:inline-block text-[10px] font-extrabold text-indigo-600 bg-indigo-100 px-1.5 py-0.2 rounded">
+                              TODAY
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 우측 상단: 3단계 순환 원형 토글 버튼 (요구사항 2) */}
+                        <button
+                          type="button"
+                          onClick={(e) => onCycleToggle(cell.dateKey, e)}
+                          title="클릭 시 출석(빨강) -> 중요(노랑) -> 기본 순환"
+                          className="p-1 -mr-1 -mt-1 rounded-full hover:scale-110 active:scale-95 transition-transform"
+                        >
+                          <CircleToggleButton status={record.status} />
+                        </button>
+                      </div>
+
+                      {/* 셀 내용 미리보기 (메모, 장소, 링크 등 작성 시 태그 표시) */}
+                      <div className="mt-1 space-y-1 overflow-hidden flex-1 flex flex-col justify-end">
+                        {record.memo && (
+                          <div className="text-[11px] text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 rounded px-1.5 py-0.5 truncate border border-slate-200">
+                            {record.memo}
+                          </div>
+                        )}
+                        {record.importantSchedule && (
+                          <div className="text-[10px] text-amber-800 bg-amber-50 rounded px-1.5 py-0.5 truncate border border-amber-200 font-medium">
+                            ★ {record.importantSchedule}
+                          </div>
+                        )}
+                        {record.link && (
+                          <div className="text-[10px] text-blue-700 bg-blue-50 rounded px-1.5 py-0.5 truncate border border-blue-200 flex items-center space-x-1">
+                            <Icons.Link className="w-2.5 h-2.5 flex-shrink-0" />
+                            <span className="truncate">{getDomainFromUrl(record.link)}</span>
+                          </div>
+                        )}
+
+                        {/* 상세 내용 존재 여부 인디케이터 점 */}
+                        {hasDetails && !record.memo && !record.importantSchedule && !record.link && (
+                          <div className="flex items-center space-x-1 text-[10px] text-indigo-600 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                            <span>상세 있음</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 호버 시 힌트 텍스트 */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-1 right-1 text-[9px] text-slate-400 bg-white/90 px-1 rounded shadow-xs pointer-events-none">
+                        상세보기 &gt;
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 스케치 1 우측 하단 네비게이션 버튼 ('<' 와 '>') */}
+            <div className="flex justify-end mt-4">
+              <div className="inline-flex items-center bg-white border-2 border-slate-800 rounded-xl p-1.5 shadow-md space-x-2">
+                <button
+                  type="button"
+                  onClick={onPrevMonth}
+                  aria-label="이전 달 이동"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-800 hover:bg-slate-100 active:bg-slate-200 transition-colors border border-transparent hover:border-slate-300"
+                  title="이전 달 이동"
+                >
+                  <Icons.ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+                </button>
+                <div className="h-5 w-[1px] bg-slate-300"></div>
+                <button
+                  type="button"
+                  onClick={onNextMonth}
+                  aria-label="다음 달 이동"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-800 hover:bg-slate-100 active:bg-slate-200 transition-colors border border-transparent hover:border-slate-300"
+                  title="다음 달 이동"
+                >
+                  <Icons.ChevronRight className="w-6 h-6 stroke-[2.5]" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 3단계 순환 원형 토글 버튼 컴포넌트
+    // 0: 기본 (투명/회색 테두리)
+    // 1: 빨간색 원 + 흰색 체크 아이콘 (출석체크)
+    // 2: 노란색 원 (중요 날짜)
+    // ==========================================
+    function CircleToggleButton({ status = 0, size = "md" }) {
+      const dimensions = size === "lg" ? "w-7 h-7 text-xs" : "w-5 h-5 text-[10px]";
+      const iconSize = size === "lg" ? "w-4 h-4" : "w-3 h-3";
+
+      if (status === 1) {
+        // 1회 클릭: 빨간색 원 + 흰색 체크 아이콘(출석체크)
+        return (
+          <div
+            className={`${dimensions} rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm transition-all transform hover:scale-110`}
+            title="출석 완료 (빨간색 체크)"
+          >
+            <Icons.Check className={`${iconSize} text-white`} strokeWidth={3} />
+          </div>
+        );
+      }
+
+      if (status === 2) {
+        // 2회 클릭: 노란색 원(중요 날짜)
+        return (
+          <div
+            className={`${dimensions} rounded-full bg-amber-400 text-amber-900 border border-amber-500/30 flex items-center justify-center shadow-sm transition-all transform hover:scale-110`}
+            title="중요 날짜 (노란색 원)"
+          >
+            <div className="w-2 h-2 rounded-full bg-amber-700/50"></div>
+          </div>
+        );
+      }
+
+      // 기본 상태: 투명/회색 테두리
+      return (
+        <div
+          className={`${dimensions} rounded-full border-2 border-slate-300 bg-white/80 hover:border-slate-500 transition-colors`}
+          title="기본 상태 (클릭하여 상태 변경)"
+        ></div>
+      );
+    }
+
+    // ==========================================
+    // 2. 상세 입력 화면 컴포넌트 (스케치 2)
+    // ==========================================
+    function DetailView({
+      selectedDate,
+      record,
+      onBack,
+      onUpdateField,
+      onCycleToggle,
+      showToast
+    }) {
+      // 선택된 날짜 파싱 (예: 2026-11-09)
+      const dateObj = useMemo(() => {
+        const parts = selectedDate.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        const date = new Date(y, m - 1, d);
+        return {
+          year: y,
+          month: m,
+          day: d,
+          dayOfWeek: DAY_NAMES[date.getDay()]
+        };
+      }, [selectedDate]);
+
+      // URL 유효성 검증
+      const urlValue = record.link || '';
+      const isUrlValid = useMemo(() => {
+        return isValidUrl(urlValue);
+      }, [urlValue]);
+
+      const domainName = useMemo(() => {
+        if (!isUrlValid) return '';
+        return getDomainFromUrl(urlValue);
+      }, [urlValue, isUrlValid]);
+
+      // 파비콘 서비스 URL
+      const faviconUrl = useMemo(() => {
+        if (!domainName) return null;
+        return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domainName)}&sz=64`;
+      }, [domainName]);
+
+      // 링크 복사 기능
+      const handleCopyLink = () => {
+        if (!urlValue) return;
+        navigator.clipboard.writeText(urlValue).then(() => {
+          showToast("링크가 클립보드에 복사되었습니다.");
+        }).catch(() => {
+          showToast("클립보드 복사에 실패했습니다.");
+        });
+      };
+
+      return (
+        <div className="max-w-xl mx-auto">
+          {/* 스케치 2 카드 레이아웃: 세로 프레임 */}
+          <div className="bg-white border-2 border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+            {/* 상단 헤더: 스케치 2의 '< 뒤로가기' 버튼 & 날짜 정보 */}
+            <div className="border-b-2 border-slate-800 bg-slate-50 p-4 sm:p-5 flex items-center justify-between">
+              {/* 스케치 2 좌측 상단 '< 뒤로가기' 버튼 */}
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center space-x-1.5 text-sm font-bold text-slate-800 hover:text-indigo-600 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 transition-colors shadow-sm"
+              >
+                <Icons.ArrowLeft className="w-4 h-4" />
+                <span>&lt; 뒤로가기</span>
+              </button>
+
+              {/* 현재 날짜 표시 & 원형 토글 */}
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <div className="text-xs text-slate-500 font-medium">선택된 날짜</div>
+                  <div className="text-sm font-bold text-slate-800">
+                    {dateObj.year}년 {dateObj.month}월 {dateObj.day}일 ({dateObj.dayOfWeek})
+                  </div>
+                </div>
+
+                {/* 상세 페이지에서도 즉시 상태를 바꿀 수 있는 순환 원형 토글 */}
+                <button
+                  type="button"
+                  onClick={onCycleToggle}
+                  className="p-1 rounded-full hover:bg-slate-200 transition-colors"
+                  title="클릭하여 토글 상태 변경"
+                >
+                  <CircleToggleButton status={record.status} size="lg" />
+                </button>
+              </div>
+            </div>
+
+            {/* 상태 뱃지 안내 바 */}
+            <div className="bg-slate-100/80 px-5 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs">
+              <span className="text-slate-600">
+                현재 상태: {record.status === 1 ? (
+                  <span className="font-bold text-red-600">출석 완료 (빨간색 체크)</span>
+                ) : record.status === 2 ? (
+                  <span className="font-bold text-amber-600">중요 날짜 (노란색 원)</span>
+                ) : (
+                  <span className="text-slate-500">기본 상태</span>
+                )}
+              </span>
+              <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                <Icons.CheckCircle2 className="w-3.5 h-3.5" />
+                자동 저장 활성화됨
+              </span>
+            </div>
+
+            {/* 5개 고정 레이블 입력 폼 (요구사항 3 - 스케치 2) */}
+            <div className="p-5 sm:p-6 space-y-5">
+              {/* 1) 메모 (Text Input) */}
+              <div className="space-y-1.5">
+                <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  <Icons.FileText className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>1. 메모</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="간단한 메모를 입력하세요 (예: 프로젝트 회의 등)"
+                  value={record.memo || ''}
+                  onChange={(e) => onUpdateField('memo', e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+
+              {/* 2) 장소 (Text Input) */}
+              <div className="space-y-1.5">
+                <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  <Icons.MapPin className="w-3.5 h-3.5 text-rose-500" />
+                  <span>2. 장소</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="방문 장소나 미팅 위치를 입력하세요 (예: 강남역 카페, 본사 대회의실)"
+                  value={record.location || ''}
+                  onChange={(e) => onUpdateField('location', e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+
+              {/* 3) 중요 일정 (Text Input) */}
+              <div className="space-y-1.5">
+                <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  <Icons.Bookmark className="w-3.5 h-3.5 text-amber-500" />
+                  <span>3. 중요 일정</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="놓치지 말아야 할 핵심 일정을 기록하세요"
+                  value={record.importantSchedule || ''}
+                  onChange={(e) => onUpdateField('importantSchedule', e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all shadow-inner"
+                />
+              </div>
+
+              {/* 4) 링크 (URL Input - 일반 텍스트 입력 불가, URL 형식 검증) (요구사항 3 특화) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                    <Icons.Link className="w-3.5 h-3.5 text-blue-500" />
+                    <span>4. 링크 (URL 전용 필드)</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400">http:// 또는 https:// 필수</span>
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type="url"
+                    placeholder="https://example.com"
+                    value={urlValue}
+                    onChange={(e) => onUpdateField('link', e.target.value)}
+                    className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm focus:outline-none focus:bg-white transition-all shadow-inner ${
+                      urlValue.trim() === ''
+                        ? 'border-slate-300 focus:ring-2 focus:ring-blue-500'
+                        : isUrlValid
+                        ? 'border-emerald-500 focus:ring-2 focus:ring-emerald-500 bg-emerald-50/20'
+                        : 'border-red-400 focus:ring-2 focus:ring-red-400 bg-red-50/20'
+                    }`}
+                  />
+                  {urlValue.trim() !== '' && (
+                    <div className="absolute right-3 top-3">
+                      {isUrlValid ? (
+                        <Icons.CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Icons.AlertCircle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 유효성 검증 실패 시 안내 메시지 */}
+                {urlValue.trim() !== '' && !isUrlValid && (
+                  <p className="text-xs text-red-500 font-medium flex items-center space-x-1 mt-1">
+                    <Icons.AlertCircle className="w-3.5 h-3.5" />
+                    <span>올바른 URL 형식(예: https://naver.com)으로 입력해 주세요. (일반 텍스트 불가)</span>
+                  </p>
+                )}
+
+                {/* 링크 필드 특화 기능: 올바른 URL 입력 시 하단에 미니 링크 미리보기 (Link Preview) 카드 생성 */}
+                {isUrlValid && (
+                  <div className="mt-2.5 p-3.5 rounded-xl border-2 border-blue-200 bg-gradient-to-r from-blue-50/70 to-indigo-50/50 shadow-sm transition-all animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-blue-800 tracking-wider uppercase flex items-center gap-1">
+                        <Icons.Sparkles className="w-3 h-3 text-blue-600" />
+                        미니 링크 미리보기 (Link Preview)
+                      </span>
+                      <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                        URL 감지됨
+                      </span>
+                    </div>
+
+                    <div className="mt-2.5 flex items-center space-x-3">
+                      {/* 파비콘 아이콘 */}
+                      <div className="w-10 h-10 rounded-lg bg-white border border-blue-200 flex items-center justify-center p-1.5 shadow-xs flex-shrink-0">
+                        {faviconUrl ? (
+                          <img
+                            src={faviconUrl}
+                            alt="Favicon"
+                            className="w-6 h-6 object-contain"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'block';
+                            }}
+                          />
+                        ) : null}
+                        <Icons.ExternalLink className="w-5 h-5 text-blue-500 hidden" />
+                      </div>
+
+                      {/* 도메인 및 URL 정보 */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-slate-800 truncate">
+                          {domainName}
+                        </h4>
+                        <p className="text-xs text-slate-500 truncate" title={urlValue}>
+                          {urlValue}
+                        </p>
+                      </div>
+
+                      {/* 액션 버튼들: 새창 열기 & 복사 */}
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleCopyLink}
+                          className="p-2 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg shadow-xs transition-colors"
+                          title="URL 복사"
+                        >
+                          <Icons.Copy className="w-4 h-4" />
+                        </button>
+                        <a
+                          href={urlValue}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg shadow-sm transition-colors"
+                          title="새 탭에서 사이트 열기"
+                        >
+                          <span>방문</span>
+                          <Icons.ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 5) 기타 (Text Input / Textarea) */}
+              <div className="space-y-1.5">
+                <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  <Icons.FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>5. 기타</span>
+                </label>
+                <textarea
+                  rows="3"
+                  placeholder="추가적인 메모, 할 일, 준비물 등을 자유롭게 적어보세요"
+                  value={record.etc || ''}
+                  onChange={(e) => onUpdateField('etc', e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner resize-none"
+                ></textarea>
+              </div>
+            </div>
+
+            {/* 하단 완료 버튼 & 안내 */}
+            <div className="border-t-2 border-slate-800 bg-slate-50 p-4 sm:p-5 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                입력하신 모든 내용은 브라우저에 안전하게 보존됩니다.
+              </span>
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center space-x-2 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95"
+              >
+                <span>달력으로 돌아가기</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // React 렌더링 마운트
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>
