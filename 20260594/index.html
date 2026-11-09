@@ -1,0 +1,3258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>얼음 왕국 낚시 게임 - Ice Fishing Master</title>
+  <style>
+    :root {
+      --bg-dark: #0a1120;
+      --panel-bg: rgba(13, 27, 42, 0.88);
+      --panel-border: rgba(120, 180, 255, 0.35);
+      --panel-glow: rgba(56, 189, 248, 0.2);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --gold: #f59e0b;
+      --gold-light: #fbbf24;
+      --accent-blue: #38bdf8;
+      --grade-normal: #ef4444;
+      --grade-legend: #eab308;
+      --grade-mythic: #ec4899;
+      --grade-secret: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+    }
+
+    /* 게임 전체 컨테이너 */
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 30%, #1e3a5f 0%, #0d1b2a 70%, #050b14 100%);
+    }
+
+    /* 메인 캔버스 (배경 얼음, 육각 웅덩이, 낚싯줄, 파티클, 눈 등) */
+    #world-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* 낚싯대 클로즈업 레이어 (오른쪽 전면) */
+    #rod-layer {
+      position: absolute;
+      right: -20px;
+      bottom: -40px;
+      width: 520px;
+      height: 640px;
+      pointer-events: none;
+      z-index: 8;
+      transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+      transform-origin: bottom right;
+      filter: drop-shadow(-15px -15px 30px rgba(0,0,0,0.7));
+    }
+
+    #rod-layer.hidden-rod {
+      transform: translateY(480px) rotate(25deg);
+      opacity: 0.15;
+    }
+
+    #rod-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* ---------------- UI 레이아웃 ---------------- */
+    /* 상단 상태 바 & 알림 */
+    .top-banner {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .game-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #e0f2fe, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 25px rgba(56, 189, 248, 0.5);
+    }
+
+    .status-msg {
+      font-size: 14px;
+      font-weight: 600;
+      color: #bae6fd;
+      background: rgba(15, 23, 42, 0.75);
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+    }
+
+    /* 왼쪽 상점 패널 (Shop UI) */
+    #shop-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      max-height: calc(100vh - 120px);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255,255,255,0.1);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .panel-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .shop-items-container {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .shop-items-container::-webkit-scrollbar {
+      width: 5px;
+    }
+    .shop-items-container::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+    }
+
+    .rod-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rod-card:hover {
+      border-color: rgba(56, 189, 248, 0.6);
+      background: rgba(30, 41, 59, 0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.15);
+    }
+
+    .rod-card.equipped {
+      border-color: #38bdf8;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(15, 23, 42, 0.8));
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
+    }
+
+    .rod-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rod-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rod-price {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold-light);
+      background: rgba(245, 158, 11, 0.15);
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .rod-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    .rod-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      color: #cbd5e1;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .special-badge {
+      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #d8b4fe;
+      line-height: 1.3;
+    }
+
+    .rod-action-btn {
+      margin-top: 4px;
+      padding: 7px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-buy {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff;
+    }
+    .btn-buy:hover {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+
+    .btn-equip {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+    }
+    .btn-equip:hover {
+      background: rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-equipped {
+      background: #0284c7;
+      color: #fff;
+      cursor: default;
+    }
+
+    /* 우측 하단 소지금 HUD */
+    #gold-hud {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 10;
+      background: var(--panel-bg);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 10px 18px;
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .gold-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fde68a, #f59e0b, #b45309);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 900;
+      color: #78350f;
+      font-size: 18px;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .gold-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gold-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #cbd5e1;
+    }
+
+    .gold-amount {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--gold-light);
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    }
+
+    /* 화면 우측 피어싱 구매 버튼 패널 */
+    #piercing-shop-btn-wrap {
+      position: absolute;
+      bottom: 94px;
+      right: 24px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .piercing-buy-btn {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.28), rgba(15, 23, 42, 0.94));
+      border: 1px solid rgba(239, 68, 68, 0.55);
+      border-radius: 18px;
+      padding: 9px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(239, 68, 68, 0.25);
+      transition: all 0.25s ease;
+      color: #fff;
+    }
+
+    .piercing-buy-btn:hover {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(30, 41, 59, 0.95));
+      border-color: #f87171;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(239, 68, 68, 0.4);
+    }
+
+    .piercing-buy-btn.purchased {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(15, 23, 42, 0.92));
+      border-color: #22c55e;
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.25);
+      cursor: default;
+    }
+
+    .piercing-icon {
+      font-size: 20px;
+      filter: drop-shadow(0 0 6px #ef4444);
+    }
+
+    .piercing-btn-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .piercing-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fecaca;
+      letter-spacing: 0.5px;
+    }
+
+    .piercing-buy-btn.purchased .piercing-title {
+      color: #bbf7d0;
+    }
+
+    .piercing-price {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold-light);
+    }
+
+    .piercing-buy-btn.purchased .piercing-price {
+      color: #4ade80;
+    }
+
+    .piercing-tooltip {
+      font-size: 10px;
+      color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.88);
+      padding: 4px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    /* 시크릿 확정 찬스 버튼 (25원) */
+    .secret-chance-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(15, 23, 42, 0.94));
+      border: 1px solid rgba(168, 85, 247, 0.6);
+      border-radius: 18px;
+      padding: 9px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 16px rgba(168, 85, 247, 0.3);
+      transition: all 0.25s ease;
+      color: #fff;
+    }
+
+    .secret-chance-btn:hover {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(30, 41, 59, 0.95));
+      border-color: #c084fc;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(168, 85, 247, 0.5);
+    }
+
+    .secret-chance-btn.active-chance {
+      border-color: #f43f5e;
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(147, 51, 234, 0.4));
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.55);
+      animation: rainbowGlow 2.5s linear infinite;
+    }
+
+    .secret-icon {
+      font-size: 20px;
+      filter: drop-shadow(0 0 8px #c084fc);
+    }
+
+    .secret-btn-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .secret-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #e9d5ff;
+      letter-spacing: 0.5px;
+    }
+
+    .secret-price {
+      font-size: 11px;
+      font-weight: 700;
+      color: #facc15;
+    }
+
+    /* 하단 조작 컨트롤 (낚싯대 꺼내기/넣기 토글 버튼 & 모바일 최적화) */
+    #bottom-controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .toggle-rod-btn {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      border-radius: 30px;
+      color: #e0f2fe;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+    }
+
+    .toggle-rod-btn:hover {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(15, 23, 42, 0.9));
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
+      transform: scale(1.03);
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    /* ---------------- 캐스팅 파워 게이지 ---------------- */
+    #cast-meter {
+      position: absolute;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 220px;
+      height: 22px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px solid rgba(56, 189, 248, 0.6);
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+      z-index: 12;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+
+    #cast-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #f43f5e);
+      border-radius: 10px;
+      transition: width 0.05s linear;
+    }
+
+    #cast-meter-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      top: 2px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    /* ---------------- 미니게임 UI 오버레이 ---------------- */
+    #minigame-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 360px;
+      max-width: 90vw;
+      background: rgba(15, 23, 42, 0.92);
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      border-radius: 20px;
+      padding: 16px 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 15px 45px rgba(0,0,0,0.7), 0 0 30px rgba(56, 189, 248, 0.25);
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .minigame-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .fish-target-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grade-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .grade-badge.normal { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+    .grade-badge.legend { background: rgba(234, 179, 8, 0.2); color: #eab308; border: 1px solid #eab308; }
+    .grade-badge.mythic { background: rgba(236, 72, 153, 0.2); color: #ec4899; border: 1px solid #ec4899; }
+    .grade-badge.secret {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.25), rgba(168, 85, 247, 0.25), rgba(56, 189, 248, 0.25));
+      color: #d8b4fe;
+      border: 1px solid #a855f7;
+      animation: rainbowGlow 2s linear infinite;
+    }
+
+    @keyframes rainbowGlow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* 좌우 조절 레일 트랙 */
+    .track-wrapper {
+      position: relative;
+      width: 100%;
+      height: 52px;
+      background: rgba(2, 6, 23, 0.9);
+      border: 2px solid rgba(148, 163, 184, 0.3);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+    }
+
+    /* 플레이어 조절 블록 (주황색 영역) */
+    #catch-zone {
+      position: absolute;
+      top: 0;
+      left: 10%;
+      width: 34%;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(249, 115, 22, 0.58), rgba(234, 88, 12, 0.8));
+      border-left: 3px solid #fed7aa;
+      border-right: 3px solid #fed7aa;
+      border-radius: 8px;
+      box-shadow: 0 0 18px rgba(249, 115, 22, 0.6), inset 0 0 12px rgba(254, 215, 170, 0.45);
+      transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      pointer-events: none;
+    }
+
+    #catch-zone.active {
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.78), rgba(217, 119, 6, 0.92));
+      box-shadow: 0 0 26px rgba(245, 158, 11, 0.85), inset 0 0 16px rgba(254, 240, 138, 0.75);
+    }
+
+    /* 물고기 아이콘 */
+    #fish-target-icon {
+      position: absolute;
+      top: 50%;
+      left: 30%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      pointer-events: none;
+      transition: filter 0.2s ease;
+      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.7));
+    }
+
+    /* 기절 상태 물고기 이펙트 */
+    #fish-target-icon.stunned {
+      filter: drop-shadow(0 0 8px #facc15) brightness(1.2);
+      animation: stunShake 0.12s infinite alternate;
+    }
+
+    @keyframes stunShake {
+      0% { transform: translate(-50%, -50%) rotate(-4deg); }
+      100% { transform: translate(-50%, -50%) rotate(4deg); }
+    }
+
+    .stun-stars-badge {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      color: #fde047;
+      text-shadow: 0 0 6px rgba(250, 204, 21, 0.9);
+      animation: spinStars 0.8s linear infinite;
+      white-space: nowrap;
+      pointer-events: none;
+      font-weight: 900;
+    }
+
+    @keyframes spinStars {
+      0% { transform: translateX(-50%) rotate(0deg); }
+      100% { transform: translateX(-50%) rotate(360deg); }
+    }
+
+    /* 할퀴는 듯한 이펙트 (피어싱 참격) */
+    .claw-scratch-fx {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+      animation: scratchFlash 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    }
+
+    @keyframes scratchFlash {
+      0% {
+        opacity: 0;
+        transform: scale(0.8) rotate(-2deg);
+        filter: brightness(2) drop-shadow(0 0 15px #ef4444);
+      }
+      20% {
+        opacity: 1;
+        transform: scale(1.05) rotate(0deg);
+        filter: brightness(1.8) drop-shadow(0 0 20px #f97316);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.15) rotate(2deg);
+        filter: brightness(1) drop-shadow(0 0 5px #ef4444);
+      }
+    }
+
+    /* 하단 진행도 게이지 */
+    .progress-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      background: rgba(2, 6, 23, 0.9);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #minigame-progress-fill {
+      height: 100%;
+      width: 15%;
+      background: linear-gradient(90deg, #ef4444, #eab308, #22c55e);
+      border-radius: 8px;
+      transition: width 0.08s ease-out;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    }
+
+    .minigame-help-text {
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* ---------------- 성공 / 결과 모달 ---------------- */
+    #result-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 24px;
+      padding: 24px;
+      width: 350px;
+      max-width: 90vw;
+      text-align: center;
+      z-index: 30;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    /* ---------------- 물고기 도감 모달 (2번 키) ---------------- */
+    #book-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: rgba(13, 27, 42, 0.96);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 22px;
+      width: 680px;
+      max-width: 92vw;
+      max-height: 85vh;
+      z-index: 35;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.85), 0 0 30px rgba(56, 189, 248, 0.2);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    #book-modal.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    .book-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+    }
+
+    .book-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .book-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .book-progress-text {
+      font-size: 12px;
+      color: #38bdf8;
+      font-weight: 700;
+    }
+
+    .btn-close-modal {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #94a3b8;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .btn-close-modal:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+
+    /* 도감 필터 탭 */
+    .book-filter-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .book-tab-btn {
+      padding: 5px 14px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 12px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .book-tab-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      color: #bae6fd;
+    }
+
+    .book-tab-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    /* 도감 물고기 그리드 리스트 */
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 6px;
+      max-height: 58vh;
+    }
+
+    .book-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+    .book-grid::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 4px;
+    }
+
+    .book-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .book-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .book-card.caught {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+    }
+
+    .book-card.uncaught {
+      opacity: 0.55;
+      filter: grayscale(0.9);
+      border-style: dashed;
+    }
+
+    .book-card-img-wrap {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .book-card.uncaught .book-card-img-wrap svg {
+      filter: brightness(0.2) blur(1px);
+    }
+
+    .book-card-count-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      background: rgba(2, 132, 199, 0.35);
+      border: 1px solid #38bdf8;
+      color: #e0f2fe;
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+
+    .book-card-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: #f8fafc;
+      text-align: center;
+    }
+
+    .book-card-details {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      width: 100%;
+      font-size: 10px;
+      color: #94a3b8;
+      background: rgba(2, 6, 23, 0.5);
+      padding: 6px 8px;
+      border-radius: 8px;
+    }
+
+    .book-card-stat {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .book-card-stat span:last-child {
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .book-card-desc {
+      font-size: 10px;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    #result-modal.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .fish-display-box {
+      width: 150px;
+      height: 150px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 20px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(15, 23, 42, 0.6) 80%);
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fish-display-svg {
+      width: 110px;
+      height: 110px;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+      animation: floatFish 2.5s ease-in-out infinite;
+    }
+
+    @keyframes floatFish {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(3deg); }
+    }
+
+    .fish-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+
+    .fish-meta {
+      font-size: 12px;
+      color: #94a3b8;
+      display: flex;
+      gap: 8px;
+    }
+
+    .reward-box {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold-light);
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 8px 20px;
+      border-radius: 12px;
+    }
+
+    .btn-confirm {
+      padding: 10px 32px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-confirm:hover {
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      transform: translateY(-2px);
+    }
+
+    /* 입질 알림 느낌표 레이어 */
+    #bite-alert {
+      position: absolute;
+      z-index: 15;
+      font-size: 48px;
+      font-weight: 900;
+      transform: translate(-50%, -100%);
+      pointer-events: none;
+      display: none;
+      animation: popAlert 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+      text-shadow: 0 0 20px currentColor, 0 4px 10px rgba(0,0,0,0.8);
+    }
+
+    @keyframes popAlert {
+      0% { transform: translate(-50%, -20%) scale(0.2); opacity: 0; }
+      70% { transform: translate(-50%, -120%) scale(1.3); opacity: 1; }
+      100% { transform: translate(-50%, -100%) scale(1); opacity: 1; }
+    }
+
+    .alert-normal { color: #ef4444; }
+    .alert-legend { color: #eab308; }
+    .alert-mythic { color: #ec4899; }
+    .alert-secret {
+      background: linear-gradient(45deg, #ff0055, #ffcc00, #00ffcc, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: glitchAlert 0.25s infinite alternate;
+    }
+
+    @keyframes glitchAlert {
+      0% { transform: translate(-51%, -100%) scale(1.1); filter: hue-rotate(0deg); }
+      100% { transform: translate(-49%, -98%) scale(1.2); filter: hue-rotate(180deg); }
+    }
+
+    /* 대검 낚싯대 특수 연출 (하늘에서 거대한 검이 떨어지는 애니메이션) */
+    #sword-drop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 25;
+      display: none;
+    }
+
+    /* 특수 능력 팝업 (피켈 보너스 등) */
+    .floating-text {
+      position: absolute;
+      font-weight: 800;
+      font-size: 14px;
+      color: #38bdf8;
+      pointer-events: none;
+      z-index: 25;
+      animation: floatUpFade 1.2s ease-out forwards;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.8), 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    @keyframes floatUpFade {
+      0% { opacity: 0; transform: translateY(0) scale(0.7); }
+      20% { opacity: 1; transform: translateY(-10px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-50px) scale(1); }
+    }
+
+    /* 반응형 레이아웃 조절 */
+    @media (max-width: 820px) {
+      #shop-panel {
+        width: calc(100vw - 40px);
+        max-height: 200px;
+        top: 60px;
+        left: 20px;
+      }
+      .shop-items-container {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .rod-card {
+        min-width: 220px;
+      }
+      #rod-layer {
+        width: 320px;
+        height: 420px;
+        right: -30px;
+        bottom: -20px;
+      }
+      .game-title {
+        font-size: 16px;
+      }
+      #gold-hud {
+        bottom: 80px;
+        right: 16px;
+        padding: 6px 14px;
+      }
+      #piercing-shop-btn-wrap {
+        bottom: 138px;
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <!-- 배경 얼음, 웅덩이, 물결 및 낚싯줄 렌더링 캔버스 -->
+    <canvas id="world-canvas"></canvas>
+
+    <!-- 입질 느낌표 엘리먼트 -->
+    <div id="bite-alert">!</div>
+
+    <!-- 대검 소환 특수 연출 캔버스/레이어 -->
+    <div id="sword-drop-overlay"></div>
+
+    <!-- 상단 타이틀 & 힌트 -->
+    <div class="top-banner">
+      <div class="game-title">ICE FISHING MASTER</div>
+      <div class="status-msg" id="status-msg">얼음 구멍을 클릭하여 낚시를 시작하세요 (단축키: 1 낚싯대, 2 도감)</div>
+    </div>
+
+    <!-- 왼쪽 상점 UI -->
+    <div id="shop-panel">
+      <div class="panel-header">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+          낚싯대 상점
+        </h2>
+        <span style="font-size:11px; color:#94a3b8;">원클릭 구매 & 장착</span>
+      </div>
+      <div class="shop-items-container" id="shop-items-list">
+        <!-- 동적 낚싯대 리스트 렌더링 -->
+      </div>
+    </div>
+
+    <!-- 화면 우측 스킬 및 찬스 구매 버튼 패널 -->
+    <div id="piercing-shop-btn-wrap">
+      <!-- 25원 시크릿 확정 찬스 버튼 -->
+      <button class="secret-chance-btn" id="secret-chance-btn" onclick="buySecretChance()">
+        <div class="secret-icon">👑</div>
+        <div class="secret-btn-info">
+          <div class="secret-title">시크릿 확정 찬스</div>
+          <div class="secret-price" id="secret-btn-state">25원에 획득</div>
+        </div>
+      </button>
+      <div class="piercing-tooltip" style="color:#e9d5ff; border-color:rgba(168,85,247,0.3);">
+        다음 입질 시 무조건 시크릿(레비아탄) 출현!
+      </div>
+
+      <!-- 보조 피어싱 구매 버튼 -->
+      <button class="piercing-buy-btn" id="piercing-buy-btn" onclick="buyAuxPiercing()" style="margin-top:4px;">
+        <div class="piercing-icon">⚔️</div>
+        <div class="piercing-btn-info">
+          <div class="piercing-title">보조 피어싱 스킬</div>
+          <div class="piercing-price" id="piercing-btn-state">25원에 구매</div>
+        </div>
+      </button>
+      <div class="piercing-tooltip">
+        1초마다 50% 확률로 +5% & 1초 기절 (재접속 시 초기화)
+      </div>
+    </div>
+
+    <!-- 우측 하단 소지금 HUD -->
+    <div id="gold-hud">
+      <div class="gold-icon">₩</div>
+      <div class="gold-info">
+        <span class="gold-label">소지금</span>
+        <span class="gold-amount" id="gold-display">1,350</span>
+      </div>
+    </div>
+
+    <!-- 하단 컨트롤 (낚싯대 꺼내기/넣기 토글 및 도감) -->
+    <div id="bottom-controls">
+      <button class="toggle-rod-btn" id="toggle-rod-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 22l20-20M12 2l10 10M17 7l-5 5"></path>
+        </svg>
+        <span id="rod-toggle-text">낚싯대 넣기</span>
+        <span class="key-badge">1</span>
+      </button>
+
+      <button class="toggle-rod-btn" id="toggle-book-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>물고기 도감</span>
+        <span class="key-badge">2</span>
+      </button>
+    </div>
+
+    <!-- 캐스팅 파워 게이지 -->
+    <div id="cast-meter">
+      <div id="cast-meter-fill"></div>
+      <div id="cast-meter-text">캐스팅 파워</div>
+    </div>
+
+    <!-- 미니게임 UI (물고기 파이팅) -->
+    <div id="minigame-container">
+      <div class="minigame-header">
+        <div class="fish-target-name">
+          <span id="mini-fish-name">물고기</span>
+          <span class="grade-badge" id="mini-fish-badge">일반</span>
+        </div>
+        <div style="font-size: 11px; color: #94a3b8;" id="mini-fish-elasticity">탄력: +80</div>
+      </div>
+
+      <!-- 좌우 조절 레일 트랙 -->
+      <div class="track-wrapper" id="minigame-track">
+        <!-- 플레이어 조절 블록 (주황색 영역) -->
+        <div id="catch-zone"></div>
+        <!-- 할퀴기 이펙트 레이어 -->
+        <div id="scratch-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:4;"></div>
+        <!-- 물고기 아이콘 -->
+        <div id="fish-target-icon">
+          <div id="fish-svg-wrap"></div>
+          <div class="stun-stars-badge" id="stun-stars" style="display:none;">💫 기절!</div>
+        </div>
+      </div>
+
+      <!-- 진행도 바 -->
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span>포획 진행도</span>
+          <span id="progress-percent">10%</span>
+        </div>
+        <div class="progress-track">
+          <div id="minigame-progress-fill"></div>
+        </div>
+      </div>
+
+      <div class="minigame-help-text">
+        화면을 누르고 있으면 주황색 블록이 <b>오른쪽</b>으로, 떼면 <b>왼쪽</b>으로 이동합니다.<br>
+        블록 안에 물고기를 유지하여 100%를 달성하세요!
+      </div>
+    </div>
+
+    <!-- 획득 결과 모달 -->
+    <div id="result-modal">
+      <div class="result-title" id="result-title" style="color: #38bdf8;">낚시 성공!</div>
+      <div class="fish-display-box" id="result-fish-box">
+        <!-- 물고기 그래픽 삽입 -->
+      </div>
+      <div class="fish-name" id="result-fish-name">광어</div>
+      <div class="fish-meta">
+        <span class="grade-badge" id="result-grade-badge">일반</span>
+        <span id="result-fish-stats">탄력 80 | 보정 +10%</span>
+      </div>
+      <div class="reward-box" id="result-reward-text">+25원 획득!</div>
+      <button class="btn-confirm" id="btn-close-result">확인</button>
+    </div>
+
+    <!-- 물고기 도감 모달 (2번 키) -->
+    <div id="book-modal">
+      <div class="book-header">
+        <div class="book-header-left">
+          <div class="book-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            물고기 도감
+          </div>
+          <div class="book-progress-text" id="book-progress-summary">도감 수집 현황: 0 / 13 종 (0%)</div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-book" title="닫기 (단축키: 2)">✕</button>
+      </div>
+
+      <!-- 등급 필터 탭 -->
+      <div class="book-filter-tabs">
+        <button class="book-tab-btn active" data-filter="all">전체 어종 (13)</button>
+        <button class="book-tab-btn" data-filter="normal">일반</button>
+        <button class="book-tab-btn" data-filter="legend">전설</button>
+        <button class="book-tab-btn" data-filter="mythic">신화</button>
+        <button class="book-tab-btn" data-filter="secret">시크릿</button>
+      </div>
+
+      <!-- 물고기 카드 그리드 리스트 -->
+      <div class="book-grid" id="book-fish-grid">
+        <!-- 동적으로 도감 카드 생성 -->
+      </div>
+    </div>
+
+    <!-- 우측 낚싯대 클로즈업 레이어 (SVG 기반) -->
+    <div id="rod-layer">
+      <svg id="rod-svg" viewBox="0 0 500 600">
+        <!-- 낚싯대 그래픽 (현재 장착된 낚싯대에 따라 변경) -->
+        <g id="rod-visual-group"></g>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       사운드 시스템 (Web Audio API 기반 자체 합성)
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.initialized = false;
+      }
+
+      init() {
+        if (this.initialized) return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+        this.initialized = true;
+      }
+
+      ensureActive() {
+        if (!this.initialized) this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      // 일반 등급: "냠" (짧고 가벼운 포획음 - Pitch pop)
+      playNom() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.13);
+      }
+
+      // 전설 등급: "띠링" (밝은 획득음)
+      playDingLegend() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const notes = [659.25, 987.77]; // E5, B5
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.09;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.36);
+        });
+      }
+
+      // 신화 등급: "띠링" (강렬한 획득음 - 리치 하모닉스 & 베이스 벨)
+      playDingMythic() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const chords = [523.25, 783.99, 1046.50, 1318.51]; // C5, G5, C6, E6
+        chords.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.05;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+
+          gain.gain.setValueAtTime(0.28, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.62);
+        });
+      }
+
+      // 시크릿 등급: "챠라랑" (화려한 멜로디음 - 크리스탈 아르페지오)
+      playCharaSecret() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const melody = [659.25, 830.61, 987.77, 1318.51, 1661.22, 1975.53, 2637.02];
+        melody.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.07;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.52);
+        });
+      }
+
+      // 물 튀는 소리 (캐스팅 및 입질)
+      playSplash() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.18);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.22);
+      }
+
+      // 대검 낙하 강타음 (신검 연출)
+      playSwordStrike() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // 금속 파열음
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.45);
+
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.52);
+
+        // 하이 메탈 링잉
+        const ring = this.ctx.createOscillator();
+        const rGain = this.ctx.createGain();
+        ring.type = 'sine';
+        ring.frequency.setValueAtTime(1480, now);
+        ring.frequency.exponentialRampToValueAtTime(900, now + 0.6);
+        rGain.gain.setValueAtTime(0.3, now);
+        rGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+
+        ring.connect(rGain);
+        rGain.connect(this.ctx.destination);
+        ring.start(now);
+        ring.stop(now + 0.72);
+      }
+
+      // 릴 감는 소리 틱
+      playReelTick() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800 + Math.random() * 200, now);
+
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.035);
+      }
+
+      // 피어싱: 칼날 할퀴는 소리 (날카로운 슬래시/스크래치 사운드)
+      playSlash() {
+        this.ensureActive();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        
+        // 쇳소리 노이즈 긁힘
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.14);
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.5));
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(3600, now);
+        filter.frequency.exponentialRampToValueAtTime(700, now + 0.14);
+        filter.Q.value = 5.0;
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        noise.start(now);
+        noise.stop(now + 0.15);
+
+        // 날카로운 소우투스 스크래치
+        const osc = this.ctx.createOscillator();
+        const oGain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.exponentialRampToValueAtTime(260, now + 0.12);
+        oGain.gain.setValueAtTime(0.25, now);
+        oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(oGain);
+        oGain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.13);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================================
+       물고기 등급 및 어종 데이터 (Canvas/SVG 렌더링 지원)
+       ========================================================================== */
+    const FISH_DATABASE = {
+      // 1) 일반 등급 (기본 60.0%, 25원, 기본 탄력 80, 속도 보정 +10%)
+      normal: {
+        name: '일반',
+        rate: 60.0,
+        price: 25,
+        baseElasticity: 80,
+        speedBonus: 0.10, // +10%
+        alertColor: 'alert-normal',
+        sound: () => sound.playNom(),
+        species: [
+          { id: 'anchovy', name: '멸치', color: '#94a3b8', eye: '#0f172a', desc: '작고 은빛으로 반짝이는 멸치' },
+          { id: 'eel', name: '장어', color: '#475569', eye: '#fef08a', desc: '미끈미끈 길쭉한 민물장어' },
+          { id: 'cod', name: '대구', color: '#64748b', eye: '#e2e8f0', desc: '차가운 심해를 유영하는 든든한 대구' },
+          { id: 'flounder', name: '광어', color: '#78716c', eye: '#f59e0b', desc: '얼음 바닥에 납작 엎드린 광어' },
+          { id: 'puffer', name: '복어', color: '#a3e635', eye: '#1e293b', desc: '놀라면 가시를 세우며 빵빵해지는 복어' },
+          { id: 'bucket', name: '물고기통', color: '#b45309', eye: '#f8fafc', desc: '누군가 흘리고 간 보물(?) 물고기통' }
+        ]
+      },
+      // 2) 전설 등급 (기본 24.0%로 대폭 상향, 56원, 기본 탄력 30, 속도 보정 -10%)
+      legend: {
+        name: '전설',
+        rate: 24.0,
+        price: 56,
+        baseElasticity: 30,
+        speedBonus: -0.10, // -10%
+        alertColor: 'alert-legend',
+        sound: () => sound.playDingLegend(),
+        species: [
+          { id: 'flyingfish', name: '날치', color: '#38bdf8', eye: '#fef08a', desc: '물 위를 활공하는 영롱한 날개 날치' },
+          { id: 'dolphin', name: '돌고래', color: '#0284c7', eye: '#ffffff', desc: '친근하게 인사하는 지혜로운 돌고래' },
+          { id: 'ancienttree', name: '고대나무', color: '#15803d', eye: '#38bdf8', desc: '빙하 속에서 천 년을 잠든 신목 가지' }
+        ]
+      },
+      // 3) 신화 등급 (기본 11.0%로 대폭 상향, 100원, 기본 탄력 -10, 속도 보정 -30%)
+      mythic: {
+        name: '신화',
+        rate: 11.0,
+        price: 100,
+        baseElasticity: -10,
+        speedBonus: -0.30, // -30%
+        alertColor: 'alert-mythic',
+        sound: () => sound.playDingMythic(),
+        species: [
+          { id: 'whale', name: '고래', color: '#4338ca', eye: '#c084fc', desc: '얼어붙은 북극해의 장엄한 대왕고래' },
+          { id: 'seamine', name: '기뢰', color: '#334155', eye: '#ef4444', desc: '째깍거리며 위험한 오라를뿜는 고대 기뢰' },
+          { id: 'pigeon', name: '비둘기', color: '#cbd5e1', eye: '#f97316', desc: '잠수모를 쓰고 수중을 지배하는 비둘기' }
+        ]
+      },
+      // 4) 시크릿 등급 (기본 5.0%로 대폭 상향, 1200원, 기본 탄력 -89, 속도 보정 -80%)
+      secret: {
+        name: '시크릿',
+        rate: 5.0,
+        price: 1200,
+        baseElasticity: -89,
+        speedBonus: -0.80, // -80%
+        alertColor: 'alert-secret',
+        sound: () => sound.playCharaSecret(),
+        species: [
+          { id: 'leviathan', name: '레비아탄', color: '#7e22ce', eye: '#22d3ee', desc: '심해의 심연에서 부활한 전설의 해룡' }
+        ]
+      }
+    };
+
+    /* 어종별 개성 있는 SVG 벡터 그래픽 제너레이터 */
+    function getFishSVG(speciesId, size = 100) {
+      switch (speciesId) {
+        case 'anchovy':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M15 50 Q40 35 70 45 Q85 40 92 30 Q88 50 92 70 Q85 60 70 55 Q40 65 15 50 Z" fill="#94a3b8" stroke="#cbd5e1" stroke-width="2"/>
+            <path d="M25 48 Q50 42 70 48" stroke="#f1f5f9" stroke-width="2" fill="none"/>
+            <circle cx="28" cy="47" r="3" fill="#0f172a"/>
+            <circle cx="29" cy="46" r="1" fill="#fff"/>
+          </svg>`;
+        case 'eel':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M10 50 Q30 25 50 50 T90 50 Q96 52 90 55 T50 56 T10 50 Z" fill="#475569" stroke="#64748b" stroke-width="2"/>
+            <path d="M40 38 Q60 50 80 46" stroke="#94a3b8" stroke-dasharray="3 3" fill="none"/>
+            <circle cx="16" cy="48" r="3" fill="#fef08a"/>
+            <circle cx="16" cy="48" r="1.5" fill="#0f172a"/>
+          </svg>`;
+        case 'cod':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M12 50 C25 25 65 25 80 42 L94 30 L88 50 L94 70 L80 58 C65 75 25 75 12 50 Z" fill="#64748b" stroke="#94a3b8" stroke-width="2"/>
+            <circle cx="28" cy="44" r="4.5" fill="#fff"/>
+            <circle cx="28" cy="44" r="2.5" fill="#0f172a"/>
+            <path d="M20 58 Q24 64 28 59" stroke="#94a3b8" stroke-width="2" fill="none"/>
+            <path d="M45 42 Q60 40 70 46" stroke="#334155" stroke-width="2" fill="none"/>
+          </svg>`;
+        case 'flounder':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <ellipse cx="48" cy="50" rx="35" ry="24" fill="#78716c" stroke="#a8a29e" stroke-width="2"/>
+            <path d="M82 45 L94 32 L90 50 L94 68 L82 55 Z" fill="#78716c"/>
+            <circle cx="32" cy="42" r="3" fill="#f59e0b"/>
+            <circle cx="32" cy="42" r="1.5" fill="#000"/>
+            <circle cx="40" cy="40" r="3" fill="#f59e0b"/>
+            <circle cx="40" cy="40" r="1.5" fill="#000"/>
+            <circle cx="55" cy="50" r="2" fill="#57534e"/>
+            <circle cx="65" cy="46" r="3" fill="#57534e"/>
+          </svg>`;
+        case 'puffer':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <circle cx="45" cy="50" r="30" fill="#a3e635" stroke="#65a30d" stroke-width="2.5"/>
+            <!-- 가시들 -->
+            <path d="M45 18 L45 12 M25 24 L20 18 M65 24 L70 18 M18 45 L11 45 M18 60 L12 65 M72 45 L79 45 M72 60 L78 65 M45 82 L45 88" stroke="#4d7c0f" stroke-width="3" stroke-linecap="round"/>
+            <path d="M74 50 L90 40 L86 50 L90 60 Z" fill="#84cc16"/>
+            <circle cx="30" cy="44" r="5" fill="#fff"/>
+            <circle cx="30" cy="44" r="3" fill="#1e293b"/>
+            <ellipse cx="18" cy="52" rx="4" ry="2.5" fill="#ef4444"/>
+          </svg>`;
+        case 'bucket':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M26 35 L34 80 Q50 86 66 80 L74 35 Z" fill="#b45309" stroke="#78350f" stroke-width="3"/>
+            <ellipse cx="50" cy="35" rx="24" ry="8" fill="#38bdf8" stroke="#78350f" stroke-width="2"/>
+            <path d="M30 50 Q50 56 70 50" stroke="#78350f" stroke-width="3" fill="none"/>
+            <path d="M32 65 Q50 71 68 65" stroke="#78350f" stroke-width="3" fill="none"/>
+            <!-- 삐져나온 꼬리 -->
+            <path d="M48 30 Q58 18 66 22 Q58 26 55 35" fill="#94a3b8" stroke="#475569" stroke-width="2"/>
+          </svg>`;
+        case 'flyingfish':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M15 50 C30 35 65 35 80 48 L94 38 L90 50 L94 62 L80 52 C65 65 30 65 15 50 Z" fill="#38bdf8" stroke="#0284c7" stroke-width="2"/>
+            <!-- 거대한 무지개빛 날개 지느러미 -->
+            <path d="M42 46 C45 15 82 10 76 38 Z" fill="rgba(56, 189, 248, 0.7)" stroke="#bae6fd" stroke-width="2"/>
+            <path d="M42 54 C45 85 82 90 76 62 Z" fill="rgba(56, 189, 248, 0.7)" stroke="#bae6fd" stroke-width="2"/>
+            <circle cx="26" cy="46" r="4" fill="#fef08a"/>
+            <circle cx="26" cy="46" r="2" fill="#0f172a"/>
+          </svg>`;
+        case 'dolphin':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M12 55 Q20 40 38 40 Q55 35 70 45 Q82 48 94 40 L90 52 L96 62 Q80 56 68 55 Q45 66 25 60 Z" fill="#0284c7" stroke="#38bdf8" stroke-width="2"/>
+            <path d="M48 40 L54 26 Q58 35 62 38 Z" fill="#0369a1"/>
+            <path d="M38 56 Q44 68 50 58 Z" fill="#0369a1"/>
+            <circle cx="24" cy="46" r="3" fill="#fff"/>
+            <circle cx="24" cy="46" r="1.5" fill="#020617"/>
+          </svg>`;
+        case 'ancienttree':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M18 52 C30 40 50 42 62 34 C72 26 84 30 90 40 C75 46 65 58 48 56 C32 68 20 62 18 52 Z" fill="#15803d" stroke="#166534" stroke-width="3"/>
+            <circle cx="45" cy="46" r="4" fill="#38bdf8" filter="drop-shadow(0 0 4px #38bdf8)"/>
+            <circle cx="68" cy="38" r="3.5" fill="#facc15" filter="drop-shadow(0 0 4px #facc15)"/>
+            <path d="M32 50 Q48 52 58 46" stroke="#4ade80" stroke-width="2" fill="none"/>
+          </svg>`;
+        case 'whale':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <path d="M10 48 C16 28 55 25 80 42 Q92 34 94 30 L90 50 L94 70 Q90 66 80 58 C55 75 16 72 10 48 Z" fill="#4338ca" stroke="#6366f1" stroke-width="3"/>
+            <path d="M25 58 Q45 68 70 56" stroke="#a5b4fc" stroke-width="2" fill="none"/>
+            <path d="M45 56 Q42 72 52 64" fill="#3730a3"/>
+            <circle cx="24" cy="44" r="3.5" fill="#c084fc"/>
+            <circle cx="24" cy="44" r="1.8" fill="#1e1b4b"/>
+            <!-- 물 뿜기 효과 -->
+            <path d="M40 26 Q38 12 34 10 M40 26 Q42 10 48 12" stroke="#38bdf8" stroke-width="2" fill="none"/>
+          </svg>`;
+        case 'seamine':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <circle cx="50" cy="50" r="24" fill="#334155" stroke="#64748b" stroke-width="3"/>
+            <!-- 가시 침 -->
+            <path d="M50 24 L50 12 M50 76 L50 88 M24 50 L12 50 M76 50 L88 50 M32 32 L22 22 M68 32 L78 22 M32 68 L22 78 M68 68 L78 78" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="8" fill="#ef4444" filter="drop-shadow(0 0 6px #ef4444)"/>
+            <circle cx="48" cy="48" r="2.5" fill="#fff"/>
+          </svg>`;
+        case 'pigeon':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <!-- 잠수 헬멧 어항 -->
+            <circle cx="34" cy="44" r="18" fill="rgba(56, 189, 248, 0.4)" stroke="#38bdf8" stroke-width="2"/>
+            <!-- 비둘기 몸통 -->
+            <ellipse cx="55" cy="54" rx="22" ry="16" fill="#94a3b8" stroke="#475569" stroke-width="2"/>
+            <!-- 머리 -->
+            <circle cx="34" cy="44" r="11" fill="#64748b"/>
+            <polygon points="23,44 14,48 23,50" fill="#f97316"/>
+            <circle cx="30" cy="40" r="3" fill="#f97316"/>
+            <circle cx="30" cy="40" r="1.5" fill="#000"/>
+            <!-- 날개 & 꼬리 -->
+            <path d="M48 50 Q65 48 68 62 Q52 64 48 50 Z" fill="#475569"/>
+            <polygon points="76,52 92,48 90 60" fill="#64748b"/>
+          </svg>`;
+        case 'leviathan':
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}">
+            <defs>
+              <linearGradient id="levGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a855f7"/>
+                <stop offset="50%" stop-color="#4c1d95"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+            <path d="M10 52 C25 22 65 15 90 35 C70 48 50 42 35 62 C50 68 75 62 92 75 C65 85 25 80 10 52 Z" fill="url(#levGrad)" stroke="#22d3ee" stroke-width="2.5"/>
+            <!-- 뿔과 가시 -->
+            <path d="M22 36 L15 18 L28 28 M38 28 L35 12 L46 22 M55 24 L56 10 L64 20" stroke="#f43f5e" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <circle cx="22" cy="46" r="4.5" fill="#22d3ee" filter="drop-shadow(0 0 6px #22d3ee)"/>
+            <circle cx="22" cy="46" r="2" fill="#000"/>
+            <path d="M12 52 L2 45 L8 58" fill="#f43f5e"/>
+            <!-- 꼬리 핀 -->
+            <path d="M90 35 L98 25 L92 45 M92 75 L100 85 L90 65" stroke="#a855f7" stroke-width="3"/>
+          </svg>`;
+        default:
+          return `<svg viewBox="0 0 100 100" width="${size}" height="${size}"><circle cx="50" cy="50" r="30" fill="#38bdf8"/></svg>`;
+      }
+    }
+
+    /* ==========================================================================
+       낚싯대 3종 스펙 및 데이터
+       ========================================================================== */
+    const FISHING_RODS = [
+      {
+        id: 'basic',
+        name: '기본 낚싯대',
+        price: 0,
+        owned: true,
+        luck: 0.0,            // 0%
+        elasticityBonus: 0,   // +0
+        initialProgress: 0.10, // 10%
+        desc: '표준적이고 슬림한 초심자용 낚싯대',
+        specialDesc: '입질 시 10% 진행도 즉시 채움'
+      },
+      {
+        id: 'pickaxe',
+        name: '곡선 피켈 낚싯대',
+        price: 300,
+        owned: false,
+        luck: 0.50,           // +50%
+        elasticityBonus: 20,  // +20
+        initialProgress: 0.10,
+        desc: '얼음을 찍어내는 낫/피켈 형태의 견고한 낚싯대',
+        specialDesc: '1초마다 30% 확률로 진행도 +5% 상승'
+      },
+      {
+        id: 'greatsword',
+        name: '대검 낚싯대',
+        price: 1000,
+        owned: false,
+        luck: 1.50,           // +150%
+        elasticityBonus: 50,  // +50
+        secretBonus: 40,      // 시크릿 전용 추가 +40 (총 +90)
+        initialProgress: 0.50, // 50%
+        desc: '하늘의 검기를 담은 거대한 칼날 형태의 전설의 대검',
+        specialDesc: '입질 시 50% 즉시 채움 & [피어싱] 0.5초마다 70%로 +8% 및 2초 기절(할퀴기)'
+      }
+    ];
+
+    /* ==========================================================================
+       게임 메인 스테이트 관리
+       ========================================================================== */
+    const State = {
+      gold: 1350,
+      currentRodId: 'basic',
+      rodDrawn: true,        // 낚싯대 꺼냄 여부 (1번 키 or 버튼 토글)
+      
+      // 낚시 프로세스 상태: 'IDLE' | 'CASTING' | 'WAITING' | 'BITING' | 'FIGHTING' | 'RESULT'
+      phase: 'IDLE',
+
+      // 캐스팅 게이지
+      castPower: 0,
+      castDirection: 1,
+      isHoldingCast: false,
+
+      // 현재 타겟 물고기
+      currentGradeKey: null,
+      currentFish: null,
+      effectiveElasticity: 0,
+      speedRate: 0.10,       // 1초당 진행도 변동율
+
+      // 미니게임 실시간 물리
+      playerPos: 50,         // 0 ~ 100 (조절 블록 중심 %)
+      playerVelocity: 0,
+      isHoldingReel: false,  // 마우스/터치 홀드 여부
+      fishPos: 50,           // 0 ~ 100
+      fishVelocity: 0,
+      progress: 0.10,        // 0 ~ 1.0 (0% ~ 100%)
+      
+      // 낚싯대 특수 능력 타이머 및 상태
+      pickaxeTimer: 0,       // 곡선 피켈 타이머
+      piercingTimer: 0,      // 대검 피어싱 주기 타이머 (0.5초)
+      stunRemaining: 0,      // 피어싱 기절 잔여 시간 (초)
+
+      // 화면 우측 구매 보조 피어싱 스킬 (게임을 나갈 시 초기화되도록 세션 단위로 동작)
+      hasAuxPiercing: false,
+      auxPiercingTimer: 0,
+
+      // 화면 우측 25원 구매 시크릿 등급 확정 찬스 (게임을 나갈 시 초기화)
+      secretChances: 0,
+
+      // 애니메이션 프레임 타임스탬프
+      lastTime: performance.now(),
+      
+      // 얼음 구멍 및 찌 좌표
+      holeCenter: { x: 0, y: 0, radius: 110 },
+      bobberPos: { x: 0, y: 0 },
+      rodTipPos: { x: 0, y: 0 },
+
+      // 파티클
+      particles: [],
+      ripples: [],
+      snowflakes: [],
+
+      // 도감 데이터 (게임을 나갈 시 초기화되도록 세션 단위로 유지)
+      fishBook: {},
+      isBookOpen: false,
+      currentBookFilter: 'all'
+    };
+
+    function saveFishBook() {
+      // 게임 나갈 시 모든 데이터 초기화 정책에 따라 브라우저 영구 저장하지 않음
+    }
+
+    /* 캔버스 셋업 */
+    const canvas = document.getElementById('world-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      State.holeCenter = {
+        x: canvas.width * 0.44,
+        y: canvas.height * 0.52,
+        radius: Math.min(canvas.width, canvas.height) * 0.16
+      };
+      State.bobberPos = { x: State.holeCenter.x, y: State.holeCenter.y };
+      updateRodTipPosition();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // 눈 파티클 생성
+    for (let i = 0; i < 75; i++) {
+      State.snowflakes.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: Math.random() * 2 + 0.8,
+        speedY: Math.random() * 0.8 + 0.4,
+        speedX: (Math.random() - 0.5) * 0.5,
+        opacity: Math.random() * 0.7 + 0.3
+      });
+    }
+
+    /* ==========================================================================
+       UI 및 상점 렌더링
+       ========================================================================== */
+    const shopListEl = document.getElementById('shop-items-list');
+    const goldDisplayEl = document.getElementById('gold-display');
+    const statusMsgEl = document.getElementById('status-msg');
+    const rodLayerEl = document.getElementById('rod-layer');
+    const rodToggleBtn = document.getElementById('toggle-rod-btn');
+    const rodToggleText = document.getElementById('rod-toggle-text');
+    const castMeterEl = document.getElementById('cast-meter');
+    const castMeterFillEl = document.getElementById('cast-meter-fill');
+    const minigameContainerEl = document.getElementById('minigame-container');
+    const catchZoneEl = document.getElementById('catch-zone');
+    const fishTargetIconEl = document.getElementById('fish-target-icon');
+    const progressFillEl = document.getElementById('minigame-progress-fill');
+    const progressPercentEl = document.getElementById('progress-percent');
+    const biteAlertEl = document.getElementById('bite-alert');
+    const resultModalEl = document.getElementById('result-modal');
+    const btnCloseResultEl = document.getElementById('btn-close-result');
+
+    function updateGoldUI() {
+      goldDisplayEl.textContent = State.gold.toLocaleString();
+    }
+
+    function renderShop() {
+      shopListEl.innerHTML = '';
+      FISHING_RODS.forEach(rod => {
+        const isEquipped = State.currentRodId === rod.id;
+        const card = document.createElement('div');
+        card.className = `rod-card ${isEquipped ? 'equipped' : ''}`;
+
+        let actionBtnHtml = '';
+        if (isEquipped) {
+          actionBtnHtml = `<button class="rod-action-btn btn-equipped">✓ 착용 중</button>`;
+        } else if (rod.owned) {
+          actionBtnHtml = `<button class="rod-action-btn btn-equip" onclick="equipRod('${rod.id}')">착용하기</button>`;
+        } else {
+          actionBtnHtml = `<button class="rod-action-btn btn-buy" onclick="buyRod('${rod.id}')">${rod.price}원에 즉시 구매</button>`;
+        }
+
+        card.innerHTML = `
+          <div class="rod-card-top">
+            <span class="rod-title">${rod.name}</span>
+            <span class="rod-price">${rod.price === 0 ? '기본' : rod.price + '원'}</span>
+          </div>
+          <div class="rod-desc">${rod.desc}</div>
+          <div class="rod-stats">
+            <div class="stat-item"><span>행운</span><span class="stat-value">+${Math.round(rod.luck * 100)}%</span></div>
+            <div class="stat-item"><span>탄력 보정</span><span class="stat-value">+${rod.elasticityBonus}</span></div>
+          </div>
+          <div class="special-badge">★ ${rod.specialDesc}</div>
+          ${actionBtnHtml}
+        `;
+        shopListEl.appendChild(card);
+      });
+    }
+
+    function getEquippedRod() {
+      return FISHING_RODS.find(r => r.id === State.currentRodId) || FISHING_RODS[0];
+    }
+
+    window.buyRod = function(rodId) {
+      sound.ensureActive();
+      const rod = FISHING_RODS.find(r => r.id === rodId);
+      if (!rod || rod.owned) return;
+      if (State.gold < rod.price) {
+        showStatus('소지금이 부족합니다!', true);
+        return;
+      }
+      State.gold -= rod.price;
+      rod.owned = true;
+      State.currentRodId = rodId; // 구매 즉시 착용
+      updateGoldUI();
+      renderShop();
+      updateRodVisual();
+      showStatus(`${rod.name}을(를) 구매하여 착용했습니다!`);
+    };
+
+    window.equipRod = function(rodId) {
+      sound.ensureActive();
+      const rod = FISHING_RODS.find(r => r.id === rodId);
+      if (!rod || !rod.owned) return;
+      State.currentRodId = rodId;
+      renderShop();
+      updateRodVisual();
+      showStatus(`${rod.name}을(를) 착용했습니다.`);
+    };
+
+    /* ---------------- 화면 우측 보조 피어싱 구매 시스템 ---------------- */
+    const piercingBtnEl = document.getElementById('piercing-buy-btn');
+    const piercingBtnStateEl = document.getElementById('piercing-btn-state');
+
+    function updateAuxPiercingUI() {
+      if (!piercingBtnEl || !piercingBtnStateEl) return;
+      if (State.hasAuxPiercing) {
+        piercingBtnEl.classList.add('purchased');
+        piercingBtnStateEl.textContent = '✓ 장착 완료 (패시브 활성)';
+      } else {
+        piercingBtnEl.classList.remove('purchased');
+        piercingBtnStateEl.textContent = '25원에 구매';
+      }
+    }
+
+    window.buyAuxPiercing = function() {
+      sound.ensureActive();
+      if (State.hasAuxPiercing) {
+        showStatus('이미 보조 피어싱 스킬을 보유하고 있습니다!');
+        return;
+      }
+      const price = 25;
+      if (State.gold < price) {
+        showStatus('소지금이 부족합니다! (25원 필요)', true);
+        return;
+      }
+      State.gold -= price;
+      State.hasAuxPiercing = true;
+      // 보조 피어싱 능력은 게임을 나갈 시(새로고침/종료 시) 초기화됨
+      updateGoldUI();
+      updateAuxPiercingUI();
+      sound.playDingMythic();
+      sound.playSlash();
+      showStatus('보조 피어싱 스킬을 습득했습니다! (1초마다 50% 확률로 +5% & 1초 기절)');
+      spawnFloatingText('⚔ 보조 피어싱 활성화!', window.innerWidth - 140, window.innerHeight - 150, '#f97316');
+    };
+
+    /* ---------------- 화면 우측 25원 시크릿 확정 찬스 시스템 ---------------- */
+    const secretChanceBtnEl = document.getElementById('secret-chance-btn');
+    const secretBtnStateEl = document.getElementById('secret-btn-state');
+
+    function updateSecretChanceUI() {
+      if (!secretChanceBtnEl || !secretBtnStateEl) return;
+      if (State.secretChances > 0) {
+        secretChanceBtnEl.classList.add('active-chance');
+        secretBtnStateEl.textContent = `✓ 확정 적용 중 (${State.secretChances}회)`;
+      } else {
+        secretChanceBtnEl.classList.remove('active-chance');
+        secretBtnStateEl.textContent = '25원에 획득';
+      }
+    }
+
+    window.buySecretChance = function() {
+      sound.ensureActive();
+      const price = 25;
+      if (State.gold < price) {
+        showStatus('소지금이 부족합니다! (25원 필요)', true);
+        return;
+      }
+      State.gold -= price;
+      State.secretChances = (State.secretChances || 0) + 1;
+      updateGoldUI();
+      updateSecretChanceUI();
+      sound.playCharaSecret();
+      showStatus(`시크릿 확정 찬스 획득! 다음 입질 시 무조건 레비아탄이 출현합니다. (잔여: ${State.secretChances}회)`);
+      spawnFloatingText('👑 시크릿 찬스 충전!', window.innerWidth - 140, window.innerHeight - 200, '#c084fc');
+    };
+
+    function showStatus(text, isAlert = false) {
+      statusMsgEl.textContent = text;
+      statusMsgEl.style.color = isAlert ? '#f87171' : '#bae6fd';
+      statusMsgEl.style.borderColor = isAlert ? 'rgba(239, 68, 68, 0.6)' : 'rgba(56, 189, 248, 0.4)';
+    }
+
+    /* ---------------- 낚싯대 꺼내기 / 넣기 토글 ---------------- */
+    function toggleRod() {
+      sound.ensureActive();
+      if (State.phase !== 'IDLE' && State.phase !== 'WAITING') {
+        showStatus('낚시 중에는 낚싯대를 넣을 수 없습니다!', true);
+        return;
+      }
+
+      State.rodDrawn = !State.rodDrawn;
+      if (State.rodDrawn) {
+        rodLayerEl.classList.remove('hidden-rod');
+        rodToggleText.textContent = '낚싯대 넣기';
+        showStatus('낚싯대를 꺼냈습니다. 얼음 구멍을 클릭해 캐스팅하세요!');
+      } else {
+        rodLayerEl.classList.add('hidden-rod');
+        rodToggleText.textContent = '낚싯대 꺼내기';
+        showStatus('낚싯대를 넣었습니다. (낚시 불가 상태)');
+        if (State.phase === 'WAITING') {
+          cancelFishing();
+        }
+      }
+    }
+
+    rodToggleBtn.addEventListener('click', toggleRod);
+
+    /* ---------------- 물고기 도감 토글 및 렌더링 (단축키: 2) ---------------- */
+    const bookModalEl = document.getElementById('book-modal');
+    const toggleBookBtn = document.getElementById('toggle-book-btn');
+    const closeBookBtn = document.getElementById('btn-close-book');
+
+    function renderBook() {
+      const grid = document.getElementById('book-fish-grid');
+      const progressEl = document.getElementById('book-progress-summary');
+      if (!grid) return;
+
+      // 전체 물고기 목록 취합
+      const allSpecies = [];
+      Object.keys(FISH_DATABASE).forEach(gradeKey => {
+        const grade = FISH_DATABASE[gradeKey];
+        grade.species.forEach(sp => {
+          allSpecies.push({
+            gradeKey: gradeKey,
+            gradeData: grade,
+            species: sp,
+            count: State.fishBook[sp.id] || 0
+          });
+        });
+      });
+
+      const totalSpeciesCount = allSpecies.length; // 13종
+      const caughtCount = allSpecies.filter(s => s.count > 0).length;
+      const percent = Math.round((caughtCount / totalSpeciesCount) * 100);
+      progressEl.textContent = `도감 수집 현황: ${caughtCount} / ${totalSpeciesCount} 종 (${percent}%)`;
+
+      // 필터 적용
+      const filtered = State.currentBookFilter === 'all' 
+        ? allSpecies 
+        : allSpecies.filter(s => s.gradeKey === State.currentBookFilter);
+
+      grid.innerHTML = '';
+      filtered.forEach(item => {
+        const isCaught = item.count > 0;
+        const card = document.createElement('div');
+        card.className = `book-card ${isCaught ? 'caught' : 'uncaught'}`;
+
+        const speedSign = item.gradeData.speedBonus >= 0 ? '+' : '';
+
+        if (isCaught) {
+          card.innerHTML = `
+            <div class="book-card-count-badge">포획 ${item.count}회</div>
+            <div class="book-card-img-wrap">
+              ${getFishSVG(item.species.id, 75)}
+            </div>
+            <div class="book-card-name">${item.species.name}</div>
+            <div class="grade-badge ${item.gradeKey}">${item.gradeData.name}</div>
+            <div class="book-card-details">
+              <div class="book-card-stat"><span>판매가</span><span style="color:var(--gold-light); font-weight:700;">${item.gradeData.price}원</span></div>
+              <div class="book-card-stat"><span>기본 탄력</span><span>${item.gradeData.baseElasticity}</span></div>
+              <div class="book-card-stat"><span>속도 보정</span><span>${speedSign}${Math.round(item.gradeData.speedBonus * 100)}%</span></div>
+            </div>
+            <div class="book-card-desc">${item.species.desc}</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="book-card-count-badge" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); color:#94a3b8;">미발견</div>
+            <div class="book-card-img-wrap">
+              ${getFishSVG(item.species.id, 75)}
+            </div>
+            <div class="book-card-name" style="color:#64748b;">???</div>
+            <div class="grade-badge ${item.gradeKey}">${item.gradeData.name}</div>
+            <div class="book-card-details">
+              <div class="book-card-stat"><span>판매가</span><span>???</span></div>
+              <div class="book-card-stat"><span>기본 탄력</span><span>???</span></div>
+              <div class="book-card-stat"><span>속도 보정</span><span>???</span></div>
+            </div>
+            <div class="book-card-desc">아직 발견되지 않은 신비로운 물고기입니다.</div>
+          `;
+        }
+
+        grid.appendChild(card);
+      });
+    }
+
+    function toggleBook() {
+      sound.ensureActive();
+      State.isBookOpen = !State.isBookOpen;
+      if (State.isBookOpen) {
+        renderBook();
+        bookModalEl.style.display = 'flex';
+        setTimeout(() => bookModalEl.classList.add('show'), 10);
+        sound.playDingLegend();
+      } else {
+        bookModalEl.classList.remove('show');
+        setTimeout(() => {
+          bookModalEl.style.display = 'none';
+        }, 220);
+      }
+    }
+
+    if (toggleBookBtn) toggleBookBtn.addEventListener('click', toggleBook);
+    if (closeBookBtn) closeBookBtn.addEventListener('click', toggleBook);
+
+    // 도감 등급 필터 탭 클릭
+    document.querySelectorAll('.book-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        sound.ensureActive();
+        document.querySelectorAll('.book-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        State.currentBookFilter = btn.dataset.filter;
+        renderBook();
+      });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '1') {
+        toggleRod();
+      } else if (e.key === '2') {
+        toggleBook();
+      } else if (e.key === 'Escape' && State.isBookOpen) {
+        toggleBook();
+      }
+    });
+
+    /* ==========================================================================
+       낚싯대 클로즈업 SVG 그래픽 (기본 / 피켈 / 대검)
+       ========================================================================== */
+    const rodVisualGroup = document.getElementById('rod-visual-group');
+
+    function updateRodVisual() {
+      const rodId = State.currentRodId;
+      if (rodId === 'basic') {
+        // 슬림하고 세련된 카본 낚싯대 & 황동 릴
+        rodVisualGroup.innerHTML = `
+          <!-- 손잡이 및 버트 -->
+          <path d="M460 620 L360 420" stroke="#1e293b" stroke-width="32" stroke-linecap="round"/>
+          <path d="M460 620 L360 420" stroke="#0f172a" stroke-width="26" stroke-linecap="round"/>
+          <path d="M440 580 L400 500" stroke="#475569" stroke-width="24" stroke-linecap="round"/>
+          <!-- 베이트릴 본체 -->
+          <circle cx="370" cy="450" r="34" fill="#334155" stroke="#f59e0b" stroke-width="4"/>
+          <circle cx="370" cy="450" r="22" fill="#0f172a"/>
+          <circle cx="370" cy="450" r="12" fill="#d97706"/>
+          <!-- 릴 핸들 -->
+          <line x1="370" y1="450" x2="330" y2="420" stroke="#94a3b8" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="330" cy="420" r="8" fill="#f59e0b"/>
+          <!-- 블랭크 (로드 몸통 - 끝으로 갈수록 슬림) -->
+          <path d="M360 420 Q240 280 120 110" stroke="#334155" stroke-width="14" stroke-linecap="round" fill="none"/>
+          <path d="M260 290 Q180 190 120 110" stroke="#64748b" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <!-- 가이드 링들 -->
+          <circle cx="280" cy="320" r="10" stroke="#f59e0b" stroke-width="3" fill="none"/>
+          <circle cx="200" cy="220" r="8" stroke="#f59e0b" stroke-width="2.5" fill="none"/>
+          <circle cx="125" cy="118" r="6" stroke="#f59e0b" stroke-width="2" fill="none"/>
+          <!-- 탑 가이드 팁 포인트 -->
+          <circle cx="120" cy="110" r="5" fill="#38bdf8"/>
+        `;
+      } else if (rodId === 'pickaxe') {
+        // 곡선 피켈 헤드 & 빙하 룬 형태
+        rodVisualGroup.innerHTML = `
+          <!-- 그립 -->
+          <path d="M460 620 L370 430" stroke="#374151" stroke-width="36" stroke-linecap="round"/>
+          <path d="M455 610 L375 440" stroke="#111827" stroke-width="28" stroke-dasharray="14 10" stroke-linecap="round"/>
+          <!-- 피켈 헤드 (낫 / 피켈 형태의 곡선 날) -->
+          <path d="M370 430 L320 340 Q250 240 140 100 Q190 80 280 160 Q340 220 370 430 Z" fill="#475569" stroke="#38bdf8" stroke-width="3"/>
+          <path d="M140 100 Q170 140 160 190 L110 90 Z" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+          <!-- 서리 룬 라인 -->
+          <path d="M330 360 Q260 270 170 140" stroke="#38bdf8" stroke-width="4" stroke-dasharray="6 8" fill="none" filter="drop-shadow(0 0 6px #38bdf8)"/>
+          <!-- 기계식 회전 릴 -->
+          <circle cx="380" cy="460" r="36" fill="#1e293b" stroke="#38bdf8" stroke-width="4"/>
+          <circle cx="380" cy="460" r="20" fill="#0284c7"/>
+          <polygon points="380,435 395,475 365,475" fill="#bae6fd"/>
+          <!-- 피켈 끝 팁 -->
+          <circle cx="110" cy="90" r="6" fill="#38bdf8" filter="drop-shadow(0 0 8px #38bdf8)"/>
+        `;
+      } else if (rodId === 'greatsword') {
+        // 거대한 성검 / 대검 칼날 낚싯대
+        rodVisualGroup.innerHTML = `
+          <defs>
+            <linearGradient id="bladeGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f8fafc"/>
+              <stop offset="30%" stop-color="#93c5fd"/>
+              <stop offset="70%" stop-color="#3b82f6"/>
+              <stop offset="100%" stop-color="#1e3a8a"/>
+            </linearGradient>
+          </defs>
+          <!-- 검자루 및 가드 -->
+          <path d="M470 630 L390 470" stroke="#78350f" stroke-width="32" stroke-linecap="round"/>
+          <!-- 황금 크로스가드 -->
+          <path d="M330 500 L440 430 L450 450 L340 520 Z" fill="#f59e0b" stroke="#b45309" stroke-width="3" filter="drop-shadow(0 0 10px rgba(245, 158, 11, 0.6))"/>
+          <!-- 거대한 대검 칼날 (중앙 혈조 및 빛나는 룬) -->
+          <polygon points="400,450 350,360 100,60 140,180 370,440" fill="url(#bladeGrad)" stroke="#60a5fa" stroke-width="3"/>
+          <path d="M375,445 L100,60" stroke="#eff6ff" stroke-width="4" stroke-linecap="round" filter="drop-shadow(0 0 8px #93c5fd)"/>
+          <!-- 칼날에 장착된 신성한 마법 릴 -->
+          <circle cx="400" cy="490" r="38" fill="#1e1b4b" stroke="#fbbf24" stroke-width="5"/>
+          <circle cx="400" cy="490" r="22" fill="#4338ca"/>
+          <circle cx="400" cy="490" r="10" fill="#f59e0b"/>
+          <!-- 대검 끝 칼끝 팁 포인트 -->
+          <circle cx="100" cy="60" r="8" fill="#fef08a" filter="drop-shadow(0 0 14px #fbbf24)"/>
+        `;
+      }
+      updateRodTipPosition();
+    }
+
+    function updateRodTipPosition() {
+      // 낚싯대 끝 화면 절대좌표 산출 (캔버스에 낚싯줄 그릴 때 사용)
+      const rect = rodLayerEl.getBoundingClientRect();
+      const rodId = State.currentRodId;
+      let relX = 120, relY = 110;
+      if (rodId === 'pickaxe') { relX = 110; relY = 90; }
+      if (rodId === 'greatsword') { relX = 100; relY = 60; }
+
+      const scaleX = rect.width / 500;
+      const scaleY = rect.height / 600;
+
+      State.rodTipPos = {
+        x: rect.left + relX * scaleX,
+        y: rect.top + relY * scaleY
+      };
+    }
+
+    /* ==========================================================================
+       물고기 추첨 알고리즘 (행운 및 등급 가중치 반영)
+       ========================================================================== */
+    function rollFish() {
+      // 1) 25원 시크릿 확정 찬스 활성화 시: 100% 무조건 시크릿(레비아탄) 확정 출현!
+      if (State.secretChances > 0) {
+        State.secretChances--;
+        try {
+          localStorage.setItem('ice_fishing_secret_chances', State.secretChances.toString());
+        } catch(e) {}
+        updateSecretChanceUI();
+
+        const gradeData = FISH_DATABASE.secret;
+        const randomSpecies = gradeData.species[Math.floor(Math.random() * gradeData.species.length)];
+        return {
+          gradeKey: 'secret',
+          gradeData: gradeData,
+          species: randomSpecies
+        };
+      }
+
+      const rod = getEquippedRod();
+      const luck = rod.luck; // 0, 0.5, 1.5
+
+      // 기본 확률 가중치
+      let wNormal = FISH_DATABASE.normal.rate; // 87.2
+      let wLegend = FISH_DATABASE.legend.rate * (1 + luck);
+      let wMythic = FISH_DATABASE.mythic.rate * (1 + luck * 1.2);
+      
+      // 시크릿 등급: 대검 낚싯대는 시크릿 출현 확률 추가 가중치 보정
+      let secretMultiplier = (rod.id === 'greatsword') ? 3.0 : (1 + luck * 1.5);
+      let wSecret = FISH_DATABASE.secret.rate * secretMultiplier;
+
+      const totalWeight = wNormal + wLegend + wMythic + wSecret;
+      const roll = Math.random() * totalWeight;
+
+      let chosenGradeKey = 'normal';
+      if (roll < wSecret) {
+        chosenGradeKey = 'secret';
+      } else if (roll < wSecret + wMythic) {
+        chosenGradeKey = 'mythic';
+      } else if (roll < wSecret + wMythic + wLegend) {
+        chosenGradeKey = 'legend';
+      } else {
+        chosenGradeKey = 'normal';
+      }
+
+      const gradeData = FISH_DATABASE[chosenGradeKey];
+      const randomSpecies = gradeData.species[Math.floor(Math.random() * gradeData.species.length)];
+
+      return {
+        gradeKey: chosenGradeKey,
+        gradeData: gradeData,
+        species: randomSpecies
+      };
+    }
+
+    /* ==========================================================================
+       대검 낚싯대 특수 연출 (하늘에서 거대한 성검이 내려꽂힘)
+       ========================================================================== */
+    function playGreatswordDropAnimation(callback) {
+      const overlay = document.getElementById('sword-drop-overlay');
+      overlay.style.display = 'block';
+      overlay.innerHTML = `
+        <svg id="falling-sword" viewBox="0 0 200 800" style="position:absolute; width:120px; height:450px; left:${State.holeCenter.x - 60}px; top:-500px; filter:drop-shadow(0 0 25px #60a5fa);">
+          <polygon points="100,750 70,550 70,180 100,150 130,180 130,550" fill="url(#bladeGrad)" stroke="#93c5fd" stroke-width="4"/>
+          <line x1="100" y1="150" x2="100" y2="730" stroke="#fff" stroke-width="5"/>
+          <rect x="40" y="170" width="120" height="24" rx="8" fill="#f59e0b"/>
+          <rect x="88" y="70" width="24" height="100" rx="6" fill="#78350f"/>
+          <circle cx="100" cy="60" r="20" fill="#f59e0b"/>
+        </svg>
+      `;
+
+      const swordEl = document.getElementById('falling-sword');
+      const targetTop = State.holeCenter.y - 320;
+      let startY = -500;
+      const dropStartTime = performance.now();
+      const dropDuration = 380; // 0.38초 만에 고속 낙하
+
+      function animateDrop(now) {
+        const elapsed = now - dropStartTime;
+        const progress = Math.min(elapsed / dropDuration, 1);
+        const easeIn = progress * progress * progress;
+        const currentY = startY + (targetTop - startY) * easeIn;
+
+        swordEl.style.top = `${currentY}px`;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateDrop);
+        } else {
+          // 낙하 충돌 발생!
+          sound.playSwordStrike();
+          createSplash(State.holeCenter.x, State.holeCenter.y, 45, '#60a5fa');
+          createShockwave(State.holeCenter.x, State.holeCenter.y);
+
+          // 번쩍임 후 서서히 사라짐
+          swordEl.style.transition = 'opacity 0.4s ease';
+          swordEl.style.opacity = '0';
+          setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.innerHTML = '';
+            if (callback) callback();
+          }, 400);
+        }
+      }
+      requestAnimationFrame(animateDrop);
+    }
+
+    /* 충격파 이펙트 */
+    function createShockwave(x, y) {
+      State.ripples.push({
+        x: x,
+        y: y,
+        radius: 10,
+        maxRadius: State.holeCenter.radius * 2.2,
+        alpha: 1,
+        color: '#93c5fd',
+        lineWidth: 6
+      });
+    }
+
+    /* 물 튀김 파티클 */
+    function createSplash(x, y, count = 18, color = '#bae6fd') {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 2;
+        State.particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - (Math.random() * 4 + 2),
+          radius: Math.random() * 3 + 1.5,
+          alpha: 1,
+          color: color,
+          gravity: 0.18
+        });
+      }
+    }
+
+    /* 화면 텍스트 플로팅 (피켈 보너스 등) */
+    function spawnFloatingText(text, x, y, color = '#38bdf8') {
+      const el = document.createElement('div');
+      el.className = 'floating-text';
+      el.textContent = text;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.color = color;
+      document.getElementById('game-container').appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+    }
+
+    /* ==========================================================================
+       낚시 상태 머신 (캐스팅 -> 대기 -> 입질 -> 미니게임 -> 성공/실패)
+       ========================================================================== */
+    function startCasting() {
+      if (!State.rodDrawn) {
+        showStatus('낚싯대가 들어가 있습니다. [1]키 또는 하단 버튼을 눌러 꺼내세요!', true);
+        return;
+      }
+      if (State.phase !== 'IDLE') return;
+
+      sound.ensureActive();
+      State.phase = 'CASTING';
+      State.isHoldingCast = true;
+      State.castPower = 0;
+      State.castDirection = 1;
+      castMeterEl.style.display = 'block';
+      showStatus('마우스를 떼어 캐스팅하세요!');
+    }
+
+    function releaseCasting() {
+      if (State.phase !== 'CASTING') return;
+      State.isHoldingCast = false;
+      castMeterEl.style.display = 'none';
+
+      // 캐스팅 애니메이션: 찌가 포물선을 그리며 얼음 구멍에 착지
+      sound.playSplash();
+      State.phase = 'WAITING';
+      showStatus('물고기의 입질을 기다리는 중...');
+
+      // 파워에 따른 찌 착지 위치 약간의 오프셋
+      const offsetFactor = (State.castPower - 50) * 0.4;
+      State.bobberPos = {
+        x: State.holeCenter.x + offsetFactor,
+        y: State.holeCenter.y + offsetFactor * 0.3
+      };
+
+      createSplash(State.bobberPos.x, State.bobberPos.y, 14);
+
+      // 입질 대기 시간 (1.5 ~ 3.5초)
+      const waitTime = Math.random() * 2000 + 1500;
+      setTimeout(() => {
+        if (State.phase === 'WAITING') {
+          triggerBite();
+        }
+      }, waitTime);
+    }
+
+    function cancelFishing() {
+      State.phase = 'IDLE';
+      minigameContainerEl.style.display = 'none';
+      biteAlertEl.style.display = 'none';
+      castMeterEl.style.display = 'none';
+      showStatus('얼음 구멍을 클릭하여 낚시를 시작하세요');
+    }
+
+    // 입질 발생!
+    function triggerBite() {
+      State.phase = 'BITING';
+      const picked = rollFish();
+      State.currentGradeKey = picked.gradeKey;
+      State.currentFish = picked;
+
+      const rod = getEquippedRod();
+
+      // 탄력성 계산: 기본 물고기 탄력성 + 낚싯대 탄력 보정 (+시크릿 전용 추가 보정)
+      let totalElasticity = picked.gradeData.baseElasticity + rod.elasticityBonus;
+      if (picked.gradeKey === 'secret' && rod.id === 'greatsword') {
+        totalElasticity += rod.secretBonus; // +40
+      }
+      State.effectiveElasticity = Math.max(-100, Math.min(100, totalElasticity));
+
+      // 입질 시 효과음 재생
+      picked.gradeData.sound();
+      sound.playSplash();
+      createSplash(State.bobberPos.x, State.bobberPos.y, 25);
+
+      // 느낌표 표시
+      biteAlertEl.className = picked.gradeData.alertColor;
+      biteAlertEl.style.display = 'block';
+      biteAlertEl.style.left = `${State.bobberPos.x}px`;
+      biteAlertEl.style.top = `${State.bobberPos.y - 20}px`;
+
+      // 대검 낚싯대 특수 능력: 하늘에서 검이 떨어지는 특수 연출 & 50% 즉시 채움
+      if (rod.id === 'greatsword') {
+        playGreatswordDropAnimation(() => {
+          startMinigame(0.50); // 50% 즉시 채움
+        });
+      } else {
+        // 기본 & 피켈: 10% 즉시 채움
+        setTimeout(() => {
+          startMinigame(rod.initialProgress);
+        }, 500);
+      }
+    }
+
+    /* ==========================================================================
+       미니게임 조작 및 진행도 메커니즘
+       ========================================================================== */
+    function startMinigame(initialProgress = 0.10) {
+      State.phase = 'FIGHTING';
+      biteAlertEl.style.display = 'none';
+
+      // 미니게임 상태 초기화
+      State.playerPos = 33;
+      State.playerVelocity = 0;
+      State.fishPos = 50;
+      State.fishVelocity = 0;
+      State.fishTargetVelocity = 0;
+      State.progress = initialProgress;
+      State.pickaxeTimer = 0;
+      State.piercingTimer = 0;
+      State.auxPiercingTimer = 0;
+      State.stunRemaining = 0;
+
+      // 물고기 등급별 진행속도 보정 계산
+      const baseRatePerSec = 0.10;
+      const speedMod = 1 + State.currentFish.gradeData.speedBonus;
+      State.speedRate = baseRatePerSec * speedMod;
+
+      // 미니게임 UI 세팅
+      document.getElementById('mini-fish-name').textContent = State.currentFish.species.name;
+      const badge = document.getElementById('mini-fish-badge');
+      badge.textContent = State.currentFish.gradeData.name;
+      badge.className = `grade-badge ${State.currentGradeKey}`;
+      document.getElementById('mini-fish-elasticity').textContent = `최종 탄력: ${State.effectiveElasticity >= 0 ? '+' : ''}${State.effectiveElasticity}`;
+
+      const fishSvgWrap = document.getElementById('fish-svg-wrap');
+      if (fishSvgWrap) {
+        fishSvgWrap.innerHTML = getFishSVG(State.currentFish.species.id, 32);
+      } else {
+        fishTargetIconEl.innerHTML = getFishSVG(State.currentFish.species.id, 32);
+      }
+      fishTargetIconEl.classList.remove('stunned');
+      const stunStarsEl = document.getElementById('stun-stars');
+      if (stunStarsEl) stunStarsEl.style.display = 'none';
+
+      minigameContainerEl.style.display = 'flex';
+      showStatus('클릭/홀드하여 주황색 블록 안에 물고기를 가두세요!');
+    }
+
+    /* 대검 낚싯대 특수 능력 [피어싱] 발동:
+       - 0.5초마다 70% 확률로 발동
+       - 진행도 +8% 즉시 상승
+       - 물고기 2초간 기절 (이동 불가)
+       - 조절 바/트랙에 할퀴는 듯한 화려한 참격 이펙트 연출 & 슬래시 사운드 */
+    function triggerPiercing() {
+      State.progress += 0.08;
+      State.stunRemaining = 2.0; // 2초간 기절 갱신
+
+      // 날카로운 슬래시/할퀴기 사운드
+      sound.playSlash();
+
+      // 바에 할퀴는 듯한 이펙트 생성
+      triggerClawScratch();
+
+      // 플로팅 텍스트
+      const trackRect = document.getElementById('minigame-track').getBoundingClientRect();
+      const fxX = trackRect.left + (trackRect.width * (State.playerPos + 17) / 100);
+      const fxY = trackRect.top - 14;
+      spawnFloatingText('⚔ 대검 피어싱! (+8% / 2초 기절)', fxX, fxY, '#f97316');
+    }
+
+    /* 화면 우측 구매 [보조 피어싱] 발동:
+       - 1초마다 50% 확률로 진행도 5% 채움 & 1초간 기절
+       - 조절 바/트랙에 할퀴는 듯한 이펙트 연출 & 슬래시 사운드 */
+    function triggerAuxPiercing() {
+      State.progress += 0.05;
+      State.stunRemaining = Math.max(State.stunRemaining, 1.0); // 1초간 기절 보장
+
+      sound.playSlash();
+      triggerClawScratch();
+
+      const trackRect = document.getElementById('minigame-track').getBoundingClientRect();
+      const fxX = trackRect.left + (trackRect.width * (State.playerPos + 17) / 100);
+      const fxY = trackRect.top - 14;
+      spawnFloatingText('⚔ 보조 피어싱! (+5% / 1초 기절)', fxX, fxY, '#ef4444');
+    }
+
+    function triggerClawScratch() {
+      const container = document.getElementById('scratch-overlay');
+      if (!container) return;
+
+      const scratchEl = document.createElement('div');
+      scratchEl.className = 'claw-scratch-fx';
+      // 현재 주황색 조절 바 부근에 할퀴기 이펙트 위치
+      const posX = Math.max(0, Math.min(65, State.playerPos - 5));
+      scratchEl.style.left = `${posX}%`;
+      scratchEl.style.width = '45%';
+
+      // 4줄의 날카로운 붉은색/오렌지/금빛 할큄(Claw Slash) 궤적 SVG
+      scratchEl.innerHTML = `
+        <svg viewBox="0 0 160 52" style="width:100%; height:100%; overflow:visible;">
+          <defs>
+            <linearGradient id="clawGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="25%" stop-color="#fef08a"/>
+              <stop offset="60%" stop-color="#f97316"/>
+              <stop offset="100%" stop-color="#ef4444"/>
+            </linearGradient>
+          </defs>
+          <path d="M10,4 Q45,26 80,48" stroke="url(#clawGrad)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+          <path d="M30,2 Q68,26 108,50" stroke="url(#clawGrad)" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+          <path d="M52,3 Q90,26 132,49" stroke="url(#clawGrad)" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+          <path d="M74,6 Q112,28 152,48" stroke="url(#clawGrad)" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </svg>
+      `;
+
+      container.appendChild(scratchEl);
+      setTimeout(() => scratchEl.remove(), 420);
+    }
+
+    // 미니게임 실시간 물리 & 진행도 루프
+    function updateMinigame(dt) {
+      if (State.phase !== 'FIGHTING') return;
+
+      const rod = getEquippedRod();
+
+      // 1) 플레이어 조절 블록 물리:
+      // 기존 25% -> 34%로 여유 있게 크기 확장
+      const zoneWidth = 34;
+
+      // 가속도 및 감쇠(Damping)를 적용하여 딱딱하지 않고 부드럽고 쫀득하게 움직임
+      const targetAcc = State.isHoldingReel ? 250 : -210; // %/s^2 (누르면 오른쪽 가속, 떼면 왼쪽 가속)
+      State.playerVelocity += targetAcc * dt;
+
+      // 공기 저항/마찰 댐핑 계수
+      const damping = 0.91;
+      State.playerVelocity *= Math.pow(damping, dt * 60);
+
+      // 최대 속도 클램프
+      const maxSpeed = 115;
+      State.playerVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, State.playerVelocity));
+
+      if (State.isHoldingReel) {
+        catchZoneEl.classList.add('active');
+        if (Math.random() < 0.22) sound.playReelTick();
+      } else {
+        catchZoneEl.classList.remove('active');
+      }
+
+      // 위치 업데이트
+      State.playerPos += State.playerVelocity * dt;
+
+      // 경계 제한 및 소프트 바운스 (가장자리에 부드럽게 닿음)
+      const minPos = 0;
+      const maxPos = 100 - zoneWidth;
+      if (State.playerPos <= minPos) {
+        State.playerPos = minPos;
+        if (State.playerVelocity < 0) State.playerVelocity = -State.playerVelocity * 0.2;
+      } else if (State.playerPos >= maxPos) {
+        State.playerPos = maxPos;
+        if (State.playerVelocity > 0) State.playerVelocity = -State.playerVelocity * 0.2;
+      }
+
+      catchZoneEl.style.left = `${State.playerPos}%`;
+
+      // 2) 물고기 AI 물리 & 기절 시스템:
+      const isStunned = State.stunRemaining > 0;
+      const stunStarsEl = document.getElementById('stun-stars');
+
+      if (isStunned) {
+        State.stunRemaining -= dt;
+        fishTargetIconEl.classList.add('stunned');
+        if (stunStarsEl) stunStarsEl.style.display = 'block';
+        // 기절 중에는 물고기가 완전히 정지함!
+        State.fishVelocity = 0;
+      } else {
+        fishTargetIconEl.classList.remove('stunned');
+        if (stunStarsEl) stunStarsEl.style.display = 'none';
+
+        // 탄력성 (-100 ~ 100) 반영
+        // 탄력성이 낮을수록 (-100에 가까울수록) 날뛰고 방향 전환이 잦음
+        // 탄력성이 높을수록 (100에 가까울수록) 완만하게 천천히 이동
+        const elasticity = State.effectiveElasticity; // -100 ~ 100
+        const chaos = (100 - elasticity) / 100; // 0.0 ~ 2.0 (탄력 낮을수록 커짐)
+
+        // 방향 전환 확률 및 목표 속도 (기존 대비 전체 이동속도를 약 50% 하향 조정)
+        if (Math.random() < (0.015 + chaos * 0.045)) {
+          const dir = (Math.random() - 0.5) * 2;
+          const maxFishSpeed = 18 + chaos * 42; // 기존 35 + chaos*95 에서 절반 수준으로 완화
+          State.fishTargetVelocity = dir * maxFishSpeed;
+        }
+
+        // 물고기 속도 부드러운 가감속 보간 (자연스럽고 부드러운 헤엄침)
+        if (State.fishTargetVelocity === undefined) State.fishTargetVelocity = 0;
+        const smoothRate = Math.min(1, (3.0 + chaos * 3.5) * dt);
+        State.fishVelocity += (State.fishTargetVelocity - State.fishVelocity) * smoothRate;
+
+        // 물고기 위치 업데이트
+        State.fishPos += State.fishVelocity * dt;
+
+        // 벽 바운스
+        if (State.fishPos < 4) {
+          State.fishPos = 4;
+          State.fishVelocity = Math.abs(State.fishVelocity) * 0.7;
+          State.fishTargetVelocity = Math.abs(State.fishTargetVelocity);
+        } else if (State.fishPos > 96) {
+          State.fishPos = 96;
+          State.fishVelocity = -Math.abs(State.fishVelocity) * 0.7;
+          State.fishTargetVelocity = -Math.abs(State.fishTargetVelocity);
+        }
+      }
+
+      fishTargetIconEl.style.left = `${State.fishPos}%`;
+
+      // 3) 조절 블록(주황색 영역) 안에 물고기 위치 여부 판별
+      const zoneLeft = State.playerPos;
+      const zoneRight = State.playerPos + zoneWidth;
+      const isInside = State.fishPos >= zoneLeft && State.fishPos <= zoneRight;
+
+      // 4) 진행도 증감 규칙:
+      // - 안에 있는 경우: 기본 1초당 10% * (1 + 등급별 보정) 상승
+      // - 벗어난 경우: 동일한 속도로 감소 (최저 0% 이하로 내려가지 않음)
+      if (isInside) {
+        State.progress += State.speedRate * dt;
+        catchZoneEl.style.borderColor = '#4ade80';
+      } else {
+        State.progress -= State.speedRate * dt;
+        catchZoneEl.style.borderColor = '#fdba74';
+      }
+
+      // 곡선 피켈 낚싯대 특수 능력:
+      // 낚시 진행 중 1초마다 30% 확률로 진행도 5% 추가 상승
+      if (rod.id === 'pickaxe') {
+        State.pickaxeTimer += dt;
+        if (State.pickaxeTimer >= 1.0) {
+          State.pickaxeTimer = 0;
+          if (Math.random() < 0.30) {
+            State.progress += 0.05;
+            spawnFloatingText('+5% 피켈 크리티컬!', window.innerWidth * 0.5, window.innerHeight * 0.45, '#38bdf8');
+            sound.playReelTick();
+          }
+        }
+      }
+
+      // 대검 낚싯대 특수 능력 [피어싱]:
+      // 0.5초마다 70% 확률로 진행도 8%를 채우며 2초간 물고기를 기절시킴 (할퀴는 듯한 이펙트 발동)
+      if (rod.id === 'greatsword') {
+        State.piercingTimer += dt;
+        if (State.piercingTimer >= 0.5) {
+          State.piercingTimer = 0;
+          if (Math.random() < 0.70) {
+            triggerPiercing();
+          }
+        }
+      }
+
+      // 화면 우측 구매 [보조 피어싱] 능력 (모든 낚싯대 패시브 적용):
+      // 1초마다 50% 확률로 진행도 5%를 채우며 1초간 물고기를 기절시킴 (할퀴는 듯한 이펙트 발동)
+      if (State.hasAuxPiercing) {
+        State.auxPiercingTimer += dt;
+        if (State.auxPiercingTimer >= 1.0) {
+          State.auxPiercingTimer = 0;
+          if (Math.random() < 0.50) {
+            triggerAuxPiercing();
+          }
+        }
+      }
+
+      // 진행도 클램핑 및 UI 업데이트
+      State.progress = Math.max(0, Math.min(1.0, State.progress));
+      const pct = Math.round(State.progress * 100);
+      progressFillEl.style.width = `${pct}%`;
+      progressPercentEl.textContent = `${pct}%`;
+
+      // 5) 성공 / 실패 판정
+      if (State.progress >= 1.0) {
+        onFishingSuccess();
+      } else if (State.progress <= 0.0) {
+        onFishingFail();
+      }
+    }
+
+    // 낚시 성공
+    function onFishingSuccess() {
+      State.phase = 'RESULT';
+      minigameContainerEl.style.display = 'none';
+
+      const fish = State.currentFish;
+      const price = fish.gradeData.price;
+      State.gold += price;
+      updateGoldUI();
+
+      // 도감에 잡은 물고기 기록 및 저장
+      State.fishBook[fish.species.id] = (State.fishBook[fish.species.id] || 0) + 1;
+      saveFishBook();
+      if (State.isBookOpen) {
+        renderBook();
+      }
+
+      // 효과음 재생
+      fish.gradeData.sound();
+
+      // 결과 모달 세팅
+      document.getElementById('result-title').textContent = '낚시 성공!';
+      document.getElementById('result-title').style.color = '#38bdf8';
+      document.getElementById('result-fish-box').innerHTML = `<div class="fish-display-svg">${getFishSVG(fish.species.id, 110)}</div>`;
+      document.getElementById('result-fish-name').textContent = fish.species.name;
+      
+      const gradeBadge = document.getElementById('result-grade-badge');
+      gradeBadge.textContent = fish.gradeData.name;
+      gradeBadge.className = `grade-badge ${fish.gradeKey}`;
+      
+      const speedSign = fish.gradeData.speedBonus >= 0 ? '+' : '';
+      document.getElementById('result-fish-stats').textContent = `기본 탄력 ${fish.gradeData.baseElasticity} | 속도 보정 ${speedSign}${Math.round(fish.gradeData.speedBonus * 100)}%`;
+      document.getElementById('result-reward-text').textContent = `+${price}원 획득! (자동 판매)`;
+
+      resultModalEl.style.display = 'flex';
+      setTimeout(() => resultModalEl.classList.add('show'), 10);
+    }
+
+    // 낚시 실패
+    function onFishingFail() {
+      State.phase = 'RESULT';
+      minigameContainerEl.style.display = 'none';
+
+      document.getElementById('result-title').textContent = '낚시 실패...';
+      document.getElementById('result-title').style.color = '#ef4444';
+      document.getElementById('result-fish-box').innerHTML = `
+        <svg viewBox="0 0 100 100" width="80" height="80">
+          <path d="M20 50 Q50 20 80 50" stroke="#64748b" stroke-width="4" stroke-dasharray="6 6" fill="none"/>
+          <line x1="30" y1="30" x2="70" y2="70" stroke="#ef4444" stroke-width="4"/>
+          <line x1="70" y1="30" x2="30" y2="70" stroke="#ef4444" stroke-width="4"/>
+        </svg>
+      `;
+      document.getElementById('result-fish-name').textContent = '물고기를 놓쳤습니다!';
+      document.getElementById('result-grade-badge').textContent = '도망침';
+      document.getElementById('result-grade-badge').className = 'grade-badge normal';
+      document.getElementById('result-fish-stats').textContent = '낚싯줄의 텐션이 풀렸습니다.';
+      document.getElementById('result-reward-text').textContent = '+0원';
+
+      resultModalEl.style.display = 'flex';
+      setTimeout(() => resultModalEl.classList.add('show'), 10);
+    }
+
+    btnCloseResultEl.addEventListener('click', () => {
+      sound.ensureActive();
+      resultModalEl.classList.remove('show');
+      setTimeout(() => {
+        resultModalEl.style.display = 'none';
+        State.phase = 'IDLE';
+        showStatus('얼음 구멍을 클릭하여 낚시를 시작하세요');
+      }, 200);
+    });
+
+    /* ==========================================================================
+       입력 이벤트 처리 (마우스 & 모바일 터치 통합)
+       ========================================================================== */
+    function handlePointerDown(e) {
+      sound.ensureActive();
+      // UI 상점, 도감, 피어싱 구매 버튼 및 모달 클릭 방지
+      if (e.target.closest('#shop-panel') || 
+          e.target.closest('#result-modal') || 
+          e.target.closest('#book-modal') || 
+          e.target.closest('#bottom-controls') ||
+          e.target.closest('#piercing-shop-btn-wrap')) {
+        return;
+      }
+
+      if (State.isBookOpen) {
+        toggleBook(); // 도감 바깥 클릭 시 닫기
+        return;
+      }
+
+      if (State.phase === 'IDLE') {
+        startCasting();
+      } else if (State.phase === 'FIGHTING') {
+        State.isHoldingReel = true;
+      }
+    }
+
+    function handlePointerUp() {
+      if (State.phase === 'CASTING') {
+        releaseCasting();
+      } else if (State.phase === 'FIGHTING') {
+        State.isHoldingReel = false;
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    /* ==========================================================================
+       캔버스 배경 렌더링 (육각형 얼음 구멍, 물결, 낚싯줄 등)
+       ========================================================================== */
+    function drawHexagon(ctx, x, y, radius, strokeColor, fillColor, lineWidth = 4) {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const hx = x + radius * Math.cos(angle);
+        const hy = y + radius * Math.sin(angle) * 0.72; // 원근감 (약간 납작한 타원형 육각)
+        if (i === 0) ctx.moveTo(hx, hy);
+        else ctx.lineTo(hx, hy);
+      }
+      ctx.closePath();
+      if (fillColor) {
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+      }
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+      }
+    }
+
+    function renderWorld(now, dt) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const hx = State.holeCenter.x;
+      const hy = State.holeCenter.y;
+      const r = State.holeCenter.radius;
+
+      // 1) 얼음 바닥 디테일 및 균열 선
+      ctx.save();
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.12)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(hx - r * 2.2, hy - r * 0.8);
+      ctx.lineTo(hx - r * 1.3, hy - r * 0.2);
+      ctx.lineTo(hx - r * 0.9, hy - r * 0.5);
+      ctx.moveTo(hx + r * 1.2, hy + r * 0.3);
+      ctx.lineTo(hx + r * 1.8, hy + r * 0.9);
+      ctx.stroke();
+      ctx.restore();
+
+      // 2) 육각형 얼음 낚시 홀 (3D 깊이감 표현)
+      // 외곽 얼음 두께 림 (Ice Rim)
+      drawHexagon(ctx, hx, hy + 8, r * 1.14, 'rgba(147, 197, 253, 0.4)', 'rgba(30, 58, 95, 0.6)', 6);
+      drawHexagon(ctx, hx, hy, r * 1.08, 'rgba(224, 242, 254, 0.85)', 'transparent', 3);
+
+      // 심해 물 웅덩이 내부 그라디언트
+      const waterGrad = ctx.createRadialGradient(hx, hy, 10, hx, hy, r);
+      waterGrad.addColorStop(0, '#02182b');
+      waterGrad.addColorStop(0.5, '#04223b');
+      waterGrad.addColorStop(1, '#020b14');
+      drawHexagon(ctx, hx, hy, r, 'rgba(56, 189, 248, 0.6)', waterGrad, 4);
+
+      // 3) 물결 파문 애니메이션 (Ripples)
+      if (Math.random() < 0.04) {
+        State.ripples.push({
+          x: hx + (Math.random() - 0.5) * r * 0.5,
+          y: hy + (Math.random() - 0.5) * r * 0.3,
+          radius: 4,
+          maxRadius: r * 0.85,
+          alpha: 0.7,
+          color: 'rgba(56, 189, 248, 0.6)',
+          lineWidth: 1.5
+        });
+      }
+
+      for (let i = State.ripples.length - 1; i >= 0; i--) {
+        const rip = State.ripples[i];
+        rip.radius += 35 * dt;
+        rip.alpha -= 0.6 * dt;
+
+        if (rip.alpha <= 0 || rip.radius >= rip.maxRadius) {
+          State.ripples.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(rip.x, rip.y, rip.radius, rip.radius * 0.6, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = rip.color;
+        ctx.globalAlpha = Math.max(0, rip.alpha);
+        ctx.lineWidth = rip.lineWidth;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 4) 찌 (Bobber) 렌더링
+      if (State.phase === 'WAITING' || State.phase === 'BITING' || State.phase === 'FIGHTING') {
+        const bx = State.bobberPos.x;
+        const by = State.bobberPos.y;
+
+        // 찌 물 반사 그림자
+        ctx.beginPath();
+        ctx.ellipse(bx, by + 4, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fill();
+
+        // 찌 본체 (빨강 & 하양 부표)
+        const bobOffset = Math.sin(now * 0.005) * 2;
+        ctx.beginPath();
+        ctx.arc(bx, by + bobOffset, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(bx, by + bobOffset + 2, 4, 0, Math.PI);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+      }
+
+      // 5) 낚싯줄 (Fishing Line) 렌더링
+      // 낚싯대 끝(State.rodTipPos)에서 얼음 구멍 찌(State.bobberPos)로 팽팽하게 연결
+      if (State.rodDrawn && (State.phase === 'WAITING' || State.phase === 'BITING' || State.phase === 'FIGHTING')) {
+        updateRodTipPosition();
+        const start = State.rodTipPos;
+        const target = State.bobberPos;
+
+        // 파이팅 중일 때는 팽팽하게 떨리는 연출, 대기 중일 때는 약간의 곡선
+        const tensionSag = State.phase === 'FIGHTING' ? (Math.random() - 0.5) * 3 : 25;
+        const midX = (start.x + target.x) / 2;
+        const midY = (start.y + target.y) / 2 + tensionSag;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.quadraticCurveTo(midX, midY, target.x, target.y);
+        ctx.strokeStyle = State.phase === 'FIGHTING' ? 'rgba(254, 240, 138, 0.95)' : 'rgba(224, 242, 254, 0.8)';
+        ctx.lineWidth = State.phase === 'FIGHTING' ? 2 : 1.2;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = State.phase === 'FIGHTING' ? 8 : 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 6) 파티클 시스템 업데이트 및 렌더링
+      for (let i = State.particles.length - 1; i >= 0; i--) {
+        const p = State.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.alpha -= 1.2 * dt;
+
+        if (p.alpha <= 0) {
+          State.particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 7) 설산 눈송이 효과
+      ctx.save();
+      for (let s of State.snowflakes) {
+        s.y += s.speedY;
+        s.x += s.speedX;
+        if (s.y > canvas.height) {
+          s.y = -5;
+          s.x = Math.random() * canvas.width;
+        }
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + s.opacity + ')';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    /* ==========================================================================
+       메인 게임 루프
+       ========================================================================== */
+    function gameLoop(now) {
+      const dt = Math.min((now - State.lastTime) / 1000, 0.1);
+      State.lastTime = now;
+
+      // 캐스팅 파워 게이지 핑퐁
+      if (State.phase === 'CASTING' && State.isHoldingCast) {
+        State.castPower += State.castDirection * 95 * dt;
+        if (State.castPower >= 100) {
+          State.castPower = 100;
+          State.castDirection = -1;
+        } else if (State.castPower <= 0) {
+          State.castPower = 0;
+          State.castDirection = 1;
+        }
+        castMeterFillEl.style.width = `${State.castPower}%`;
+      }
+
+      // 미니게임 실시간 물리
+      if (State.phase === 'FIGHTING') {
+        updateMinigame(dt);
+      }
+
+      // 배경 및 월드 렌더링
+      renderWorld(now, dt);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* 초기화 실행 */
+    function init() {
+      // 보조 피어싱은 나갈 시 초기화되므로 남아있는 캐시 제거
+      try {
+        localStorage.removeItem('ice_fishing_aux_piercing');
+      } catch(e) {}
+
+      resizeCanvas();
+      renderShop();
+      updateRodVisual();
+      updateGoldUI();
+      updateAuxPiercingUI();
+      updateSecretChanceUI();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 게임 창을 나갈 때(새로고침/종료 시) 보조 피어싱 초기화 보장
+    window.addEventListener('beforeunload', () => {
+      try {
+        localStorage.removeItem('ice_fishing_aux_piercing');
+      } catch(e) {}
+    });
+
+    window.onload = init;
+  </script>
+</body>
+</html>
