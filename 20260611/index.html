@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전통 윷놀이 한판! - AI 대전</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Jua & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        jua: ['Jua', 'sans-serif'],
+                        noto: ['Noto Sans KR', 'sans-serif']
+                    },
+                    colors: {
+                        wood: {
+                            50: '#fdf8f0',
+                            100: '#faedd9',
+                            200: '#f4dab3',
+                            300: '#ecc084',
+                            400: '#e3a152',
+                            500: '#dc842d',
+                            600: '#cd6c22',
+                            700: '#ab521e',
+                            800: '#89411e',
+                            900: '#6f361b',
+                            950: '#3c1a0c',
+                        }
+                    },
+                    animation: {
+                        'bounce-short': 'bounceShort 0.5s ease-in-out infinite alternate',
+                        'pulse-glow': 'pulseGlow 1.5s infinite',
+                        'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+                        'pop-in': 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                    },
+                    keyframes: {
+                        bounceShort: {
+                            '0%': { transform: 'translateY(0)' },
+                            '100%': { transform: 'translateY(-6px)' }
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+                            '50%': { opacity: '0.85', transform: 'scale(1.08)' }
+                        },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-2px, -1px, 0)' },
+                            '20%, 80%': { transform: 'translate3d(3px, 2px, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, -3px, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 3px, 0)' }
+                        },
+                        popIn: {
+                            '0%': { transform: 'scale(0.5)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: radial-gradient(circle at 50% 20%, #fef3c7 0%, #fde68a 60%, #f59e0b 150%);
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .jua-font {
+            font-family: 'Jua', sans-serif;
+        }
+        .board-container {
+            position: relative;
+            width: 100%;
+            max-width: 490px;
+            aspect-ratio: 1 / 1;
+            background: #fffbeb;
+            background-image: 
+                radial-gradient(#b45309 0.75px, transparent 0.75px), 
+                radial-gradient(#b45309 0.75px, #fffbeb 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+            border: 10px solid #78350f;
+            border-radius: 28px;
+            box-shadow: 0 16px 36px -4px rgba(69, 26, 3, 0.3), inset 0 2px 8px rgba(120, 53, 15, 0.2);
+        }
+        /* Yut Sticks */
+        .yut-stick-box {
+            perspective: 800px;
+        }
+        .yut-stick {
+            width: 38px;
+            height: 108px;
+            border-radius: 18px;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+            position: relative;
+            box-shadow: 0 8px 14px -2px rgba(69, 26, 3, 0.35);
+        }
+        @media (min-width: 640px) {
+            .yut-stick {
+                width: 46px;
+                height: 124px;
+            }
+        }
+        /* 배 (앞면, Flat) */
+        .yut-flat {
+            background: linear-gradient(135deg, #fef08a 0%, #fde047 50%, #eab308 100%);
+            border: 3.5px solid #854d0e;
+        }
+        /* 등 (뒷면, Curved) */
+        .yut-curved {
+            background: linear-gradient(135deg, #78350f 0%, #92400e 50%, #451a03 100%);
+            border: 3.5px solid #291004;
+        }
+        /* 윷 표식 선 */
+        .yut-flat-mark {
+            position: absolute;
+            width: 76%;
+            height: 3px;
+            background-color: #92400e;
+            left: 12%;
+            border-radius: 2px;
+        }
+        /* 백도 전용 붉은 점 */
+        .backdo-dot {
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle at 30% 30%, #ef4444, #991b1b);
+            border: 2.5px solid #450a0a;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px rgba(220, 38, 38, 0.7);
+        }
+        /* 윷 던질 때 회전 텀블링 애니메이션 */
+        .yut-tumbling {
+            animation: yutTumble 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes yutTumble {
+            0% { transform: translateY(-40px) scale(1.15) rotate(0deg); }
+            50% { transform: translateY(-70px) scale(1.25) rotate(180deg); }
+            75% { transform: translateY(-15px) scale(0.95) rotate(340deg); }
+            100% { transform: translateY(0) scale(1) rotate(360deg); }
+        }
+
+        /* 펄스 링 이펙트 */
+        .ring-pulse-gold {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            animation: ringPulse 1.2s infinite;
+        }
+        @keyframes ringPulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        /* 화면 플래시 */
+        .screen-flash-red {
+            animation: flashRed 0.4s ease-out;
+        }
+        @keyframes flashRed {
+            0% { background-color: rgba(239, 68, 68, 0.5); }
+            100% { background-color: transparent; }
+        }
+
+        /* 파티클 컨테이너 */
+        #particle-overlay {
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+        }
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.03);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b45309;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start min-h-screen p-2 sm:p-4 md:p-6 text-slate-800 relative">
+
+    <!-- Flash Screen Overlay for Captures -->
+    <div id="screen-flash" class="fixed inset-0 pointer-events-none z-40 transition-opacity"></div>
+    
+    <!-- Floating Particle Canvas Overlay -->
+    <canvas id="particle-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- Top Header Bar -->
+    <header class="w-full max-w-6xl flex items-center justify-between py-2 px-3 mb-2">
+        <div class="flex items-center gap-2">
+            <span class="text-3xl">🪵</span>
+            <div>
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-950 jua-font tracking-tight drop-shadow-sm flex items-center gap-2">
+                    전통 윷놀이 한판!
+                    <span class="text-xs bg-amber-800 text-amber-100 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider font-sans">AI 대전</span>
+                </h1>
+                <p class="text-[11px] sm:text-xs text-amber-900 font-semibold hidden sm:block">
+                    전통 확률(앞45%, 뒤55%) · 똑똑한 알파윷 AI · 잡기 & 업기 이펙트
+                </p>
+            </div>
+        </div>
+
+        <!-- Quick Action Buttons: Sound SFX & Rules & Restart -->
+        <div class="flex items-center gap-2">
+            <button id="sfx-toggle-btn" onclick="toggleSound()" class="p-2 sm:px-3 sm:py-1.5 bg-white/90 hover:bg-white text-amber-900 rounded-xl shadow-sm border border-amber-300 text-xs sm:text-sm font-bold flex items-center gap-1 transition">
+                <span id="sfx-icon">🔊</span>
+                <span class="hidden sm:inline" id="sfx-text">효과음 켜짐</span>
+            </button>
+            <button onclick="openRulesModal()" class="p-2 sm:px-3 sm:py-1.5 bg-white/90 hover:bg-white text-amber-900 rounded-xl shadow-sm border border-amber-300 text-xs sm:text-sm font-bold flex items-center gap-1 transition">
+                <span>📜</span>
+                <span class="hidden sm:inline">규칙 & 확률</span>
+            </button>
+            <button id="restart-header-btn" onclick="openModeSelectModal()" class="hidden p-2 sm:px-3 sm:py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl shadow-sm text-xs sm:text-sm font-bold flex items-center gap-1 transition">
+                <span>🔄</span>
+                <span class="hidden sm:inline">새 게임</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ============================================== -->
+    <!-- Screen 1: Game Setup / Mode Selection Modal    -->
+    <!-- ============================================== -->
+    <div id="setup-screen" class="w-full max-w-xl bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-2xl border-2 border-amber-300 mt-4 text-center animate-pop-in">
+        <div class="inline-block p-3 bg-amber-100 rounded-2xl mb-3 shadow-inner">
+            <span class="text-4xl">🎯</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-amber-950 jua-font mb-2">게임 모드를 선택하세요</h2>
+        <p class="text-xs sm:text-sm text-slate-600 mb-6">인공지능(AI)과 진검승부를 펼치거나 친구들과 함께 즐겨보세요!</p>
+
+        <!-- Mode Presets -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            <!-- Mode 1: 1 vs 1 AI (Recommended) -->
+            <button onclick="startPresetGame('1v1_ai')" class="p-4 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-2xl shadow-lg border-2 border-amber-300 text-left transition transform hover:-translate-y-1 group">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xl font-bold jua-font flex items-center gap-1.5">
+                        <span>👤</span> vs <span>🤖 AI</span>
+                    </span>
+                    <span class="text-[11px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full shadow-sm animate-pulse">추천</span>
+                </div>
+                <p class="text-xs text-amber-100 leading-snug">나 혼자서 컴퓨터 알파윷 AI와 1대1 박진감 넘치는 대전</p>
+            </button>
+
+            <!-- Mode 2: 1 vs 3 AI (Chaos) -->
+            <button onclick="startPresetGame('1v3_ai')" class="p-4 bg-gradient-to-br from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white rounded-2xl shadow-lg border-2 border-purple-300 text-left transition transform hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xl font-bold jua-font flex items-center gap-1.5">
+                        <span>👤</span> vs <span>🤖🤖🤖 AI 3인</span>
+                    </span>
+                    <span class="text-[11px] bg-purple-900/80 text-purple-200 font-bold px-2 py-0.5 rounded-full">난투전</span>
+                </div>
+                <p class="text-xs text-purple-200 leading-snug">3대의 AI와 함께 치열하게 맞붙는 4인 대전</p>
+            </button>
+
+            <!-- Mode 3: Local 2 Players -->
+            <button onclick="startPresetGame('2p_local')" class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-2xl shadow-lg border-2 border-emerald-300 text-left transition transform hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xl font-bold jua-font flex items-center gap-1.5">
+                        <span>👤</span> vs <span>👤 로컬 2인</span>
+                    </span>
+                    <span class="text-[11px] bg-emerald-900/80 text-emerald-200 font-bold px-2 py-0.5 rounded-full">친구와 함께</span>
+                </div>
+                <p class="text-xs text-emerald-100 leading-snug">한 기기에서 2명의 플레이어가 번갈아가며 대전</p>
+            </button>
+
+            <!-- Mode 4: Custom Configuration -->
+            <button onclick="toggleCustomSetup(true)" class="p-4 bg-gradient-to-br from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white rounded-2xl shadow-lg border-2 border-slate-500 text-left transition transform hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xl font-bold jua-font flex items-center gap-1.5">
+                        <span>⚙️</span> <span>커스텀 인원 설정</span>
+                    </span>
+                    <span class="text-[11px] bg-slate-600 text-slate-200 font-bold px-2 py-0.5 rounded-full">자유 지정</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-snug">2~4인 인원 및 플레이어별 사람/AI를 직접 조합</p>
+            </button>
+        </div>
+
+        <!-- Custom Setup Panel (Collapsed by default) -->
+        <div id="custom-setup-panel" class="hidden text-left bg-amber-50 p-4 rounded-2xl border border-amber-200 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-amber-950 jua-font text-base">커스텀 플레이어 구성 (2~4명)</h3>
+                <div class="flex gap-1.5">
+                    <button type="button" onclick="setCustomPlayerCount(2)" class="px-2.5 py-1 text-xs font-bold rounded-lg border custom-cnt-btn bg-amber-600 text-white" data-cnt="2">2인</button>
+                    <button type="button" onclick="setCustomPlayerCount(3)" class="px-2.5 py-1 text-xs font-bold rounded-lg border custom-cnt-btn bg-white text-slate-700" data-cnt="3">3인</button>
+                    <button type="button" onclick="setCustomPlayerCount(4)" class="px-2.5 py-1 text-xs font-bold rounded-lg border custom-cnt-btn bg-white text-slate-700" data-cnt="4">4인</button>
+                </div>
+            </div>
+            
+            <div id="custom-players-list" class="space-y-2 mb-4">
+                <!-- Dynamically rendered custom slots -->
+            </div>
+
+            <button onclick="startCustomGame()" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md jua-font transition">
+                이 구성으로 게임 시작하기
+            </button>
+        </div>
+
+        <!-- AI Difficulty Selector -->
+        <div class="flex items-center justify-center gap-2 pt-2 border-t border-slate-200 text-xs text-slate-600">
+            <span class="font-bold text-amber-900">🤖 AI 지능 수준:</span>
+            <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="ai-level" value="normal" class="accent-amber-600">
+                <span>보통</span>
+            </label>
+            <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="ai-level" value="hard" checked class="accent-amber-600">
+                <span class="font-bold text-amber-900">고수 (알파윷 전략형)</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- Screen 2: Main Game Arena                      -->
+    <!-- ============================================== -->
+    <div id="game-screen" class="hidden flex flex-col items-center w-full max-w-6xl mt-1">
+        
+        <!-- Live Status Bar & Current Turn -->
+        <div id="turn-banner" class="w-full bg-white/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl shadow-lg mb-4 flex flex-col sm:flex-row items-center justify-between border-2 border-amber-300 gap-3 transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <div id="current-player-avatar" class="w-10 h-10 rounded-full shadow-md border-2 border-white flex items-center justify-center text-lg font-bold text-white transition-all">
+                    👤
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="turn-player-name" class="text-xl sm:text-2xl font-extrabold jua-font text-amber-950">플레이어 1</span>
+                        <span id="turn-player-type-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">사람</span>
+                    </div>
+                    <div id="ai-status-bubble" class="text-xs text-amber-800 font-semibold flex items-center gap-1.5 hidden">
+                        <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                        <span id="ai-status-text">AI가 수를 고심하고 있습니다...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="turn-instruction-box" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-amber-200/80 rounded-xl text-amber-950 border border-amber-300 shadow-inner">
+                <span id="instruction-icon" class="text-lg animate-bounce-short">🪵</span>
+                <span id="turn-instruction" class="text-xs sm:text-sm font-bold">
+                    윷을 던져주세요!
+                </span>
+            </div>
+        </div>
+
+        <!-- 3-Column Arena Layout: Left Tokens | Center Board | Right Controls & History -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 w-full items-start">
+            
+            <!-- Left Side (3 cols): Player Cards & Waiting Yard -->
+            <div class="lg:col-span-3 flex flex-col gap-3 order-2 lg:order-1">
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="text-base font-extrabold text-amber-950 jua-font flex items-center gap-1.5">
+                        <span>👥</span> 플레이어 및 대기 말
+                    </h3>
+                    <span class="text-[11px] text-amber-900/80 font-medium">(말 4개 완주 시 승리)</span>
+                </div>
+                <div id="player-panels" class="flex flex-col gap-3">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Center Side (5 cols): Yut Board -->
+            <div class="lg:col-span-5 flex flex-col items-center w-full order-1 lg:order-2">
+                <div id="board" class="board-container relative">
+                    <!-- SVG Overlay for Paths -->
+                    <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100">
+                        <!-- Outer Loop Square -->
+                        <rect x="12" y="12" width="76" height="76" fill="none" stroke="#92400e" stroke-width="2.5" stroke-dasharray="4 2" opacity="0.65"/>
+                        <!-- Diagonal Cross 1: 5 (Top-Right) to 15 (Bottom-Left) -->
+                        <line x1="88" y1="12" x2="12" y2="88" stroke="#92400e" stroke-width="2.5" stroke-dasharray="4 2" opacity="0.65"/>
+                        <!-- Diagonal Cross 2: 10 (Top-Left) to 0 (Bottom-Right) -->
+                        <line x1="12" y1="12" x2="88" y2="88" stroke="#92400e" stroke-width="2.5" stroke-dasharray="4 2" opacity="0.65"/>
+                        
+                        <!-- Direction Arrow / Finish Landmark Indicator near 0 -->
+                        <circle cx="88" cy="88" r="8" fill="#fde68a" stroke="#78350f" stroke-width="2" opacity="0.4"/>
+                        <circle cx="50" cy="50" r="8" fill="#fde68a" stroke="#78350f" stroke-width="2" opacity="0.4"/>
+                    </svg>
+
+                    <!-- Rendered Board Nodes Container -->
+                    <div id="nodes-container" class="absolute inset-0"></div>
+
+                    <!-- Center Label / Traditional Ornament -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                        <span class="text-9xl select-none font-bold text-amber-950 font-serif">윷</span>
+                    </div>
+
+                    <!-- Floating Visual Effect Text (e.g., "💥 잡았다!", "🤝 2업 합체!") -->
+                    <div id="board-toast-overlay" class="absolute inset-0 pointer-events-none flex items-center justify-center z-30">
+                        <!-- Dynamically inserted toast animations -->
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between w-full max-w-[490px] mt-2 px-2 text-[11px] text-amber-900 font-medium">
+                    <span class="flex items-center gap-1">🚩 시작/완주 (오른쪽 아래)</span>
+                    <span class="flex items-center gap-1">⭐ 모퉁이 & 방: 지름길</span>
+                </div>
+            </div>
+
+            <!-- Right Side (4 cols): Throw Controls, Result Queue, Game Logs -->
+            <div class="lg:col-span-4 flex flex-col gap-4 w-full order-3">
+                
+                <!-- 1. Yut Throw Module -->
+                <div class="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-lg border-2 border-amber-300 text-center relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-base font-extrabold text-amber-950 jua-font flex items-center gap-1.5">
+                            <span>🪵</span> 윷 던지기
+                        </h3>
+                        <span id="throw-odds-tag" class="text-[11px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md font-semibold">
+                            앞 45% · 뒤 55%
+                        </span>
+                    </div>
+
+                    <!-- 4 Yut Sticks Visual Container -->
+                    <div class="bg-gradient-to-b from-amber-100/90 to-amber-200/50 p-3 sm:p-4 rounded-2xl border border-amber-200 mb-3 flex flex-col items-center justify-center min-h-[145px]">
+                        <div id="yut-sticks-container" class="flex items-center justify-center gap-2 sm:gap-3 my-1">
+                            <!-- 4 Yut Sticks generated via JS -->
+                        </div>
+                        <div id="yut-result-badge" class="mt-2 text-xl font-extrabold text-amber-950 jua-font h-9 flex items-center justify-center">
+                            <span class="text-slate-400 text-xs font-semibold">윷 던지기 버튼을 누르세요!</span>
+                        </div>
+                    </div>
+
+                    <!-- Throw Button -->
+                    <button id="throw-btn" onclick="handleUserThrowClick()" class="w-full py-3.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-lg rounded-2xl shadow-lg transition transform active:scale-95 jua-font flex items-center justify-center gap-2 ring-pulse-gold">
+                        <span>🪵 윷 힘차게 던지기!</span>
+                    </button>
+                </div>
+
+                <!-- 2. Available Throws Queue (도, 개, 걸, 윷, 모, 백도) -->
+                <div class="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-lg border-2 border-amber-300">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-extrabold text-amber-950 jua-font flex items-center gap-1.5">
+                            <span>📦</span> 던진 윷 결과 큐
+                        </h3>
+                        <span class="text-[11px] text-amber-800 font-semibold">(원하는 결과 클릭 선택)</span>
+                    </div>
+                    <div id="available-throws" class="flex flex-wrap gap-2 min-h-[52px] items-center p-2.5 bg-amber-50/80 rounded-2xl border border-amber-200">
+                        <span class="text-xs text-slate-400 italic w-full text-center">던진 결과가 여기에 보관됩니다.</span>
+                    </div>
+                </div>
+
+                <!-- 3. Realtime Game Logs -->
+                <div class="bg-white/95 backdrop-blur-md p-4 rounded-3xl shadow-lg border-2 border-amber-300">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <h3 class="text-sm font-extrabold text-amber-950 jua-font flex items-center gap-1.5">
+                            <span>📜</span> 실시간 경기 기록
+                        </h3>
+                        <button onclick="clearLogs()" class="text-[11px] text-slate-400 hover:text-slate-600 transition">기록 비우기</button>
+                    </div>
+                    <div id="game-logs" class="h-36 overflow-y-auto text-xs text-slate-700 flex flex-col gap-1.5 p-2.5 bg-slate-50/90 rounded-2xl border border-slate-200 shadow-inner font-sans">
+                        <div class="text-slate-400 italic">윷놀이가 준비되었습니다. 원하는 플레이를 시작하세요!</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- Modal: Victory Celebration Screen              -->
+    <!-- ============================================== -->
+    <div id="victory-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden items-center justify-center z-50 p-4 animate-pop-in">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-400 relative overflow-hidden">
+            <!-- Confetti Ribbon Decor -->
+            <div class="text-6xl mb-2 animate-bounce">🏆</div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-amber-950 jua-font mb-1">최종 승리!</h2>
+            <div id="winner-badge-container" class="my-4">
+                <span id="winner-name" class="inline-block px-5 py-2 text-2xl font-black rounded-2xl text-white shadow-md jua-font bg-amber-600">
+                    플레이어 1
+                </span>
+            </div>
+            <p id="victory-desc" class="text-slate-700 text-sm sm:text-base font-semibold mb-6">
+                축하합니다! 모든 말을 완주시켜 판을 장악하였습니다!
+            </p>
+            <div class="flex gap-3">
+                <button onclick="rematchGame()" class="flex-1 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-2xl shadow-lg jua-font transition transform hover:-translate-y-0.5">
+                    🔄 다시 한판 하기
+                </button>
+                <button onclick="openModeSelectModal()" class="flex-1 py-3.5 bg-slate-700 hover:bg-slate-800 text-white font-extrabold rounded-2xl shadow-lg jua-font transition transform hover:-translate-y-0.5">
+                    ⚙️ 모드 변경
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- Modal: Standard Alert Dialog                   -->
+    <!-- ============================================== -->
+    <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-2 border-amber-300 transform scale-95 transition-transform duration-200">
+            <div id="modal-icon" class="text-4xl mb-2">📢</div>
+            <h3 id="modal-title" class="text-2xl font-bold text-amber-950 mb-2 jua-font">알림</h3>
+            <p id="modal-message" class="text-slate-600 text-sm mb-5 leading-relaxed font-medium">메시지 내용</p>
+            <button onclick="closeModal()" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md jua-font transition">확인</button>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- Modal: Rules & Probabilities Guide             -->
+    <!-- ============================================== -->
+    <div id="rules-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border-2 border-amber-300 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+                <h3 class="text-2xl font-bold text-amber-950 jua-font flex items-center gap-2">
+                    <span>📜</span> 전통 윷놀이 규칙 & 확률 안내
+                </h3>
+                <button onclick="closeRulesModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
+                <!-- 1. Probability -->
+                <div class="bg-amber-50 p-3.5 rounded-2xl border border-amber-200">
+                    <h4 class="font-extrabold text-amber-900 jua-font text-base mb-1">🎲 윷가락 물리 확률 (앞 45%, 뒤 55%)</h4>
+                    <p class="text-slate-600">평평한 배(앞면)는 45%, 둥근 등(뒷면)은 55%로 뒤집힐 확률이 높아 실제 전통 윷놀이의 통계적 족보 빈도를 구현했습니다.</p>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-2 text-center text-xs font-bold">
+                        <div class="bg-white p-1.5 rounded-lg border">도 (+1)<br><span class="text-amber-700 font-normal">~25.7%</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border">개 (+2)<br><span class="text-amber-700 font-normal">~36.7%</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border">걸 (+3)<br><span class="text-amber-700 font-normal">~24.5%</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border">윷 (+4)<br><span class="text-amber-700 font-normal">~4.1%</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border">모 (+5)<br><span class="text-amber-700 font-normal">~9.1%</span></div>
+                        <div class="bg-white p-1.5 rounded-lg border">백도 (-1)<br><span class="text-amber-700 font-normal">~8.6%</span></div>
+                    </div>
+                </div>
+
+                <!-- 2. Back-Do Exception -->
+                <div class="bg-red-50 p-3.5 rounded-2xl border border-red-200">
+                    <h4 class="font-extrabold text-red-900 jua-font text-base mb-1">🔴 백도(Back-Do) 규칙 & 자동 취소 예외</h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><strong>백도 표시</strong>: 1번 윷가락 뒷면에 새겨진 붉은 점이 유일하게 앞을 향할 때 백도가 됩니다.</li>
+                        <li><strong>출전 불가</strong>: 대기 중인(판에 없는) 말은 백도로 첫 출전할 수 없습니다.</li>
+                        <li><strong>예외 처리</strong>: 판 위에 말이 전혀 없고 큐에 다른 출전 가능한 윷이 없을 경우, 무효 처리되어 다음 차례로 넘어갑니다. 만약 윷/모 등으로 선행 출전할 수 있는 수가 있다면 큐에 보존됩니다!</li>
+                    </ul>
+                </div>
+
+                <!-- 3. Special Rules -->
+                <div class="bg-blue-50 p-3.5 rounded-2xl border border-blue-200">
+                    <h4 class="font-extrabold text-blue-900 jua-font text-base mb-1">⚔️ 잡기 & 🤝 업기 & 🎁 추가 던지기</h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li><strong>잡기</strong>: 상대 말이 있는 칸에 도착하면 상대 말을 잡아서 시작 전 대기실로 보내며, <strong>윷을 한 번 더 던질 수 있습니다!</strong></li>
+                        <li><strong>업기</strong>: 아군의 말이 있는 칸에 도착하면 여러 말을 하나로 합쳐서 다음부터 함께 이동합니다.</li>
+                        <li><strong>윷/모</strong>: 윷이나 모가 나오면 보너스로 윷을 한 번 더 던지며, 나온 결과들을 자유롭게 조합하여 쓸 수 있습니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <button onclick="closeRulesModal()" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow jua-font transition">
+                    확인했습니다
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- Sound Effects Synthesizer (Web Audio API)      -->
+    <!-- No external assets required, 100% portable     -->
+    <!-- ============================================== -->
+    <script>
+        const SoundFX = {
+            enabled: true,
+            ctx: null,
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+
+            // 윷 던지는 덜커덕 소리
+            playThrow() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                // Clack 1, 2, 3
+                for (let i = 0; i < 4; i++) {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const filter = this.ctx.createBiquadFilter();
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(600 + Math.random() * 400, now + i * 0.06);
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(140 + Math.random() * 80, now + i * 0.06);
+
+                    gain.gain.setValueAtTime(0.18, now + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.08);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + i * 0.06);
+                    osc.stop(now + i * 0.06 + 0.09);
+                }
+            },
+
+            // 말 이동 착지 소리 (퐁)
+            playMove() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(540, now + 0.12);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.16);
+            },
+
+            // 말 업기 소리 (도레미 챠랑~)
+            playCarry() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                freqs.forEach((f, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, now + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.28);
+                });
+            },
+
+            // 상대 말 잡기 소리 (타격감 있는 콰쾅!)
+            playCapture() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                // Bass hit
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.32);
+
+                // Snare punch
+                const noise = this.ctx.createOscillator();
+                const noiseGain = this.ctx.createGain();
+                noise.type = 'square';
+                noise.frequency.setValueAtTime(120, now);
+                noiseGain.gain.setValueAtTime(0.2, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                noise.connect(noiseGain);
+                noiseGain.connect(this.ctx.destination);
+                noise.start(now);
+                noise.stop(now + 0.18);
+            },
+
+            // 승리 팡파레
+            playWin() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const melody = [
+                    { f: 523.25, d: 0.15, t: 0 },
+                    { f: 659.25, d: 0.15, t: 0.16 },
+                    { f: 783.99, d: 0.15, t: 0.32 },
+                    { f: 1046.50, d: 0.45, t: 0.48 }
+                ];
+                melody.forEach(n => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(n.f, now + n.t);
+
+                    gain.gain.setValueAtTime(0.25, now + n.t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + n.t);
+                    osc.stop(now + n.t + n.d + 0.05);
+                });
+            }
+        };
+
+        function toggleSound() {
+            SoundFX.enabled = !SoundFX.enabled;
+            const icon = document.getElementById('sfx-icon');
+            const text = document.getElementById('sfx-text');
+            if (SoundFX.enabled) {
+                icon.innerText = '🔊';
+                text.innerText = '효과음 켜짐';
+                SoundFX.playMove();
+            } else {
+                icon.innerText = '🔇';
+                text.innerText = '효과음 꺼짐';
+            }
+        }
+    </script>
+
+    <!-- ============================================== -->
+    <!-- Visual Particle & Canvas FX System             -->
+    <!-- ============================================== -->
+    <script>
+        const ParticleFX = {
+            canvas: null,
+            ctx: null,
+            particles: [],
+            animId: null,
+
+            init() {
+                this.canvas = document.getElementById('particle-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.loop();
+            },
+
+            resize() {
+                if (!this.canvas) return;
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            },
+
+            loop() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += p.gravity || 0.15;
+                    p.alpha -= p.fade || 0.02;
+                    p.size *= p.shrink || 0.98;
+                    p.rot += p.vrot || 0.05;
+
+                    if (p.alpha <= 0 || p.size <= 0.5) {
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    this.ctx.rotate(p.rot);
+                    this.ctx.globalAlpha = Math.max(0, p.alpha);
+                    this.ctx.fillStyle = p.color;
+
+                    if (p.shape === 'heart') {
+                        this.drawHeart(this.ctx, 0, 0, p.size);
+                    } else if (p.shape === 'star') {
+                        this.drawStar(this.ctx, 0, 0, 5, p.size, p.size / 2);
+                    } else if (p.shape === 'confetti') {
+                        this.ctx.fillRect(-p.size / 2, -p.size, p.size, p.size * 2);
+                    } else {
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    this.ctx.restore();
+                }
+                requestAnimationFrame(() => this.loop());
+            },
+
+            drawHeart(ctx, x, y, size) {
+                ctx.beginPath();
+                const topCurveHeight = size * 0.3;
+                ctx.moveTo(x, y + topCurveHeight);
+                ctx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + topCurveHeight);
+                ctx.bezierCurveTo(x - size / 2, y + (size + topCurveHeight) / 2, x, y + size, x, y + size);
+                ctx.bezierCurveTo(x, y + size, x + size / 2, y + (size + topCurveHeight) / 2, x + size / 2, y + topCurveHeight);
+                ctx.bezierCurveTo(x + size / 2, y, x, y, x, y + topCurveHeight);
+                ctx.closePath();
+                ctx.fill();
+            },
+
+            drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+                let rot = Math.PI / 2 * 3;
+                let x = cx;
+                let y = cy;
+                const step = Math.PI / spikes;
+
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - outerRadius);
+                for (let i = 0; i < spikes; i++) {
+                    x = cx + Math.cos(rot) * outerRadius;
+                    y = cy + Math.sin(rot) * outerRadius;
+                    ctx.lineTo(x, y);
+                    rot += step;
+
+                    x = cx + Math.cos(rot) * innerRadius;
+                    y = cy + Math.sin(rot) * innerRadius;
+                    ctx.lineTo(x, y);
+                    rot += step;
+                }
+                ctx.lineTo(cx, cy - outerRadius);
+                ctx.closePath();
+                ctx.fill();
+            },
+
+            // 업기 시 반짝이는 하트/부스터 효과
+            triggerCarryEffect(clientX, clientY) {
+                const colors = ['#f43f5e', '#ec4899', '#fbbf24', '#f59e0b', '#38bdf8'];
+                for (let i = 0; i < 28; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 2 + Math.random() * 5;
+                    this.particles.push({
+                        x: clientX,
+                        y: clientY,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 2.5,
+                        gravity: 0.08,
+                        size: 8 + Math.random() * 8,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        shape: Math.random() > 0.4 ? 'heart' : 'star',
+                        alpha: 1,
+                        fade: 0.015,
+                        shrink: 0.99,
+                        rot: Math.random() * Math.PI,
+                        vrot: (Math.random() - 0.5) * 0.15
+                    });
+                }
+            },
+
+            // 잡기 시 타격감 폭발 파티클
+            triggerCaptureExplosion(clientX, clientY) {
+                const colors = ['#ef4444', '#dc2626', '#f59e0b', '#fbbf24', '#ffffff'];
+                for (let i = 0; i < 45; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 4 + Math.random() * 8;
+                    this.particles.push({
+                        x: clientX,
+                        y: clientY,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        gravity: 0.15,
+                        size: 6 + Math.random() * 10,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        shape: 'circle',
+                        alpha: 1,
+                        fade: 0.02,
+                        shrink: 0.97,
+                        rot: 0,
+                        vrot: 0
+                    });
+                }
+            },
+
+            // 승리 시 축하 폭죽
+            triggerVictoryConfetti() {
+                const colors = ['#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
+                const count = 100;
+                for (let i = 0; i < count; i++) {
+                    this.particles.push({
+                        x: window.innerWidth * (0.2 + Math.random() * 0.6),
+                        y: window.innerHeight * 0.4,
+                        vx: (Math.random() - 0.5) * 12,
+                        vy: -6 - Math.random() * 10,
+                        gravity: 0.2,
+                        size: 8 + Math.random() * 8,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        shape: 'confetti',
+                        alpha: 1,
+                        fade: 0.008,
+                        shrink: 1,
+                        rot: Math.random() * Math.PI * 2,
+                        vrot: (Math.random() - 0.5) * 0.2
+                    });
+                }
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => ParticleFX.init());
+    </script>
+
+    <!-- ============================================== -->
+    <!-- Main Game Logic, Board Geometry & AI Engine    -->
+    <!-- ============================================== -->
+    <script>
+        /*
+          Accurate Yutnori Board Geometry:
+          - Outer Square loop: 0 ~ 19
+            0: Start & Finish Corner (Bottom-Right)
+            5: Top-Right Corner (Shortcut to Center 21->22->23)
+            10: Top-Left Corner (Shortcut to Center 28->29->23)
+            15: Bottom-Left Corner
+          - Diagonals:
+            5 -> 21 -> 22 -> 23 (Center / 방)
+            10 -> 28 -> 29 -> 23 (Center / 방)
+            23 -> 24 -> 25 -> 0 (Goal / Finished)
+            23 -> 26 -> 27 -> 15 (Bottom-Left route)
+        */
+        const boardNodes = [
+            { id: 0,  x: 88, y: 88, label: '시작/완주', isCorner: true },
+            { id: 1,  x: 88, y: 72.8 },
+            { id: 2,  x: 88, y: 57.6 },
+            { id: 3,  x: 88, y: 42.4 },
+            { id: 4,  x: 88, y: 27.2 },
+            { id: 5,  x: 88, y: 12, label: '윷모퉁이', isCorner: true, icon: '⭐' },
+            { id: 6,  x: 72.8, y: 12 },
+            { id: 7,  x: 57.6, y: 12 },
+            { id: 8,  x: 42.4, y: 12 },
+            { id: 9,  x: 27.2, y: 12 },
+            { id: 10, x: 12, y: 12, label: '모모퉁이', isCorner: true, icon: '⭐' },
+            { id: 11, x: 12, y: 27.2 },
+            { id: 12, x: 12, y: 42.4 },
+            { id: 13, x: 12, y: 57.6 },
+            { id: 14, x: 12, y: 72.8 },
+            { id: 15, x: 12, y: 88, label: '뒷모퉁이', isCorner: true },
+            { id: 16, x: 27.2, y: 88 },
+            { id: 17, x: 42.4, y: 88 },
+            { id: 18, x: 57.6, y: 88 },
+            { id: 19, x: 72.8, y: 88 },
+
+            // Shortcut from 5 to Center 23
+            { id: 21, x: 75.33, y: 24.67 },
+            { id: 22, x: 62.67, y: 37.33 },
+            { id: 23, x: 50, y: 50, label: '방(중앙)', isCenter: true, icon: '☀️' },
+
+            // From Center 23 to Goal 0
+            { id: 24, x: 62.67, y: 62.67 },
+            { id: 25, x: 75.33, y: 75.33 },
+
+            // Shortcut from 23 to 15
+            { id: 26, x: 37.33, y: 62.67 },
+            { id: 27, x: 24.67, y: 75.33 },
+
+            // Shortcut from 10 to Center 23
+            { id: 28, x: 24.67, y: 24.67 },
+            { id: 29, x: 37.33, y: 37.33 }
+        ];
+
+        const colorPalette = [
+            { name: '빨강', bg: 'bg-red-500', hex: '#ef4444', border: 'border-red-700', text: 'text-red-600', ring: 'ring-red-400', badgeBg: 'bg-red-100' },
+            { name: '파랑', bg: 'bg-blue-600', hex: '#2563eb', border: 'border-blue-800', text: 'text-blue-600', ring: 'ring-blue-400', badgeBg: 'bg-blue-100' },
+            { name: '노랑', bg: 'bg-amber-500', hex: '#f59e0b', border: 'border-amber-700', text: 'text-amber-600', ring: 'ring-amber-400', badgeBg: 'bg-amber-100' },
+            { name: '초록', bg: 'bg-emerald-600', hex: '#059669', border: 'border-emerald-800', text: 'text-emerald-600', ring: 'ring-emerald-400', badgeBg: 'bg-emerald-100' }
+        ];
+
+        // Global Game State
+        let gameState = {
+            gameMode: '1v1_ai',          // '1v1_ai', '1v3_ai', '2p_local', 'custom'
+            aiDifficulty: 'hard',        // 'normal', 'hard'
+            numPlayers: 2,
+            players: [],                 // [{ id, name, isAI, color, pieces: [...] }]
+            currentTurnIndex: 0,
+            availableThrows: [],         // Queue: [{ name, steps, extraThrow }]
+            selectedThrowIndex: null,    // Selected throw index from queue
+            selectedPieceGroupId: null,  // Selected piece ID (or leader ID of stacked group)
+            canThrow: true,              // Can user click "Throw Yut"
+            validDestinations: [],       // Array of valid targets for selected piece: [{ pieceId, throwIndex, destNode, label, actionType }]
+            lastSticksState: [false, false, false, false],
+            isProcessingAI: false,       // AI execution lock
+            gameOver: false
+        };
+
+        let customPlayerConfig = [
+            { name: '플레이어 1', isAI: false },
+            { name: '알파윷 AI', isAI: true }
+        ];
+
+        // Preset Game Initializer
+        function startPresetGame(mode) {
+            gameState.gameMode = mode;
+            const diffRadio = document.querySelector('input[name="ai-level"]:checked');
+            gameState.aiDifficulty = diffRadio ? diffRadio.value : 'hard';
+
+            let configs = [];
+            if (mode === '1v1_ai') {
+                configs = [
+                    { name: '플레이어', isAI: false },
+                    { name: '알파윷 AI 🤖', isAI: true }
+                ];
+            } else if (mode === '1v3_ai') {
+                configs = [
+                    { name: '플레이어', isAI: false },
+                    { name: '알파윷 AI-1 🤖', isAI: true },
+                    { name: '알파윷 AI-2 🤖', isAI: true },
+                    { name: '알파윷 AI-3 🤖', isAI: true }
+                ];
+            } else if (mode === '2p_local') {
+                configs = [
+                    { name: '플레이어 1', isAI: false },
+                    { name: '플레이어 2', isAI: false }
+                ];
+            }
+
+            initGameWithConfigs(configs);
+        }
+
+        // Custom Game Setup Panel Logic
+        function toggleCustomSetup(show) {
+            const panel = document.getElementById('custom-setup-panel');
+            if (show) {
+                panel.classList.remove('hidden');
+                renderCustomConfigList();
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function setCustomPlayerCount(cnt) {
+            document.querySelectorAll('.custom-cnt-btn').forEach(b => {
+                if (parseInt(b.dataset.cnt) === cnt) {
+                    b.classList.remove('bg-white', 'text-slate-700');
+                    b.classList.add('bg-amber-600', 'text-white');
+                } else {
+                    b.classList.remove('bg-amber-600', 'text-white');
+                    b.classList.add('bg-white', 'text-slate-700');
+                }
+            });
+
+            while (customPlayerConfig.length < cnt) {
+                const idx = customPlayerConfig.length + 1;
+                customPlayerConfig.push({ name: `AI ${idx} 🤖`, isAI: true });
+            }
+            if (customPlayerConfig.length > cnt) {
+                customPlayerConfig = customPlayerConfig.slice(0, cnt);
+            }
+            renderCustomConfigList();
+        }
+
+        function renderCustomConfigList() {
+            const container = document.getElementById('custom-players-list');
+            container.innerHTML = '';
+
+            customPlayerConfig.forEach((cfg, idx) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-white p-2.5 rounded-xl border border-amber-200 shadow-sm';
+                row.innerHTML = `
+                    <span class="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs text-white ${colorPalette[idx % colorPalette.length].bg}">
+                        ${idx + 1}
+                    </span>
+                    <input type="text" value="${cfg.name}" id="custom-name-${idx}" class="flex-1 text-xs border border-slate-300 rounded-lg px-2 py-1 font-bold" onchange="customPlayerConfig[${idx}].name = this.value">
+                    <select id="custom-type-${idx}" class="text-xs border border-slate-300 rounded-lg px-2 py-1 font-semibold bg-slate-50" onchange="customPlayerConfig[${idx}].isAI = (this.value === 'ai')">
+                        <option value="human" ${!cfg.isAI ? 'selected' : ''}>👤 사람</option>
+                        <option value="ai" ${cfg.isAI ? 'selected' : ''}>🤖 컴퓨터(AI)</option>
+                    </select>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function startCustomGame() {
+            const diffRadio = document.querySelector('input[name="ai-level"]:checked');
+            gameState.aiDifficulty = diffRadio ? diffRadio.value : 'hard';
+            gameState.gameMode = 'custom';
+            initGameWithConfigs(customPlayerConfig);
+        }
+
+        // Initialize and Start Game
+        function initGameWithConfigs(configs) {
+            gameState.numPlayers = configs.length;
+            gameState.players = [];
+
+            configs.forEach((cfg, idx) => {
+                gameState.players.push({
+                    id: idx,
+                    name: cfg.name,
+                    isAI: cfg.isAI,
+                    color: colorPalette[idx % colorPalette.length],
+                    pieces: [
+                        { id: 0, node: -1, finished: false },
+                        { id: 1, node: -1, finished: false },
+                        { id: 2, node: -1, finished: false },
+                        { id: 3, node: -1, finished: false }
+                    ]
+                });
+            });
+
+            gameState.currentTurnIndex = 0;
+            gameState.availableThrows = [];
+            gameState.selectedThrowIndex = null;
+            gameState.selectedPieceGroupId = null;
+            gameState.canThrow = true;
+            gameState.validDestinations = [];
+            gameState.lastSticksState = [false, false, false, false];
+            gameState.isProcessingAI = false;
+            gameState.gameOver = false;
+
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('restart-header-btn').classList.remove('hidden');
+
+            renderBoardNodes();
+            renderYutSticks([false, false, false, false]);
+            updateUI();
+            addLog(`🎲 게임이 시작되었습니다! <strong class="${gameState.players[0].color.text}">${gameState.players[0].name}</strong>님의 선공입니다.`);
+
+            checkAndRunAITurn();
+        }
+
+        function renderBoardNodes() {
+            const container = document.getElementById('nodes-container');
+            container.innerHTML = '';
+
+            boardNodes.forEach(node => {
+                const div = document.createElement('div');
+                div.id = `node-${node.id}`;
+                div.className = `absolute transform -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all duration-200 select-none`;
+                div.style.left = `${node.x}%`;
+                div.style.top = `${node.y}%`;
+
+                if (node.isCorner || node.isCenter) {
+                    div.className += ` w-9 h-9 sm:w-11 sm:h-11 bg-amber-200 border-2 border-amber-800 shadow-md font-extrabold text-[10px] text-amber-900`;
+                    if (node.icon) {
+                        div.innerHTML = `<span class="opacity-60 text-xs">${node.icon}</span>`;
+                    }
+                } else {
+                    div.className += ` w-6 h-6 sm:w-8 sm:h-8 bg-white border-2 border-amber-600 shadow-sm`;
+                }
+
+                container.appendChild(div);
+            });
+        }
+
+        // Render 4 Yut Sticks
+        function renderYutSticks(sticksState, isTumbling = false) {
+            const container = document.getElementById('yut-sticks-container');
+            container.innerHTML = '';
+
+            sticksState.forEach((isFlat, idx) => {
+                const box = document.createElement('div');
+                box.className = 'yut-stick-box';
+
+                const stick = document.createElement('div');
+                const isBackDoStick = (idx === 0);
+
+                if (isTumbling) {
+                    stick.className = `yut-stick yut-tumbling ${isFlat ? 'yut-flat' : 'yut-curved'}`;
+                    stick.style.animationDelay = `${idx * 0.08}s`;
+                } else {
+                    stick.className = `yut-stick ${isFlat ? 'yut-flat' : 'yut-curved'}`;
+                }
+
+                if (isFlat) {
+                    stick.className += ' flex flex-col items-center justify-between py-2';
+                    const mark1 = document.createElement('div');
+                    mark1.className = 'yut-flat-mark';
+                    mark1.style.top = '25%';
+
+                    const mark2 = document.createElement('div');
+                    mark2.className = 'yut-flat-mark';
+                    mark2.style.top = '75%';
+
+                    stick.appendChild(mark1);
+                    stick.appendChild(mark2);
+
+                    if (isBackDoStick) {
+                        const dot = document.createElement('div');
+                        dot.className = 'backdo-dot';
+                        stick.appendChild(dot);
+                    }
+                }
+
+                box.appendChild(stick);
+                container.appendChild(box);
+            });
+        }
+
+        // Update UI View
+        function updateUI() {
+            if (gameState.gameOver) return;
+            const curPlayer = gameState.players[gameState.currentTurnIndex];
+            
+            // Turn Banner Avatar & Details
+            const avatar = document.getElementById('current-player-avatar');
+            avatar.className = `w-10 h-10 rounded-full shadow-md border-2 border-white flex items-center justify-center text-lg font-bold text-white transition-all ${curPlayer.color.bg}`;
+            avatar.innerText = curPlayer.isAI ? '🤖' : '👤';
+
+            const nameEl = document.getElementById('turn-player-name');
+            nameEl.innerText = curPlayer.name;
+            nameEl.className = `text-xl sm:text-2xl font-extrabold jua-font ${curPlayer.color.text}`;
+
+            const badgeEl = document.getElementById('turn-player-type-badge');
+            badgeEl.innerText = curPlayer.isAI ? '컴퓨터 AI' : '사람 플레이어';
+            badgeEl.className = `text-[10px] font-bold px-2 py-0.5 rounded-full border ${curPlayer.color.badgeBg} ${curPlayer.color.text} ${curPlayer.color.border}`;
+
+            // AI Status Indicator
+            const aiStatusBubble = document.getElementById('ai-status-bubble');
+            if (curPlayer.isAI && gameState.isProcessingAI) {
+                aiStatusBubble.classList.remove('hidden');
+            } else {
+                aiStatusBubble.classList.add('hidden');
+            }
+
+            // Guidance banner
+            const instructionEl = document.getElementById('turn-instruction');
+            const iconEl = document.getElementById('instruction-icon');
+            if (curPlayer.isAI) {
+                instructionEl.innerText = "AI가 수를 결정하고 있습니다...";
+                iconEl.innerText = "🤖";
+            } else if (gameState.canThrow && gameState.availableThrows.length === 0) {
+                instructionEl.innerText = "윷 던지기 버튼을 누르세요!";
+                iconEl.innerText = "🪵";
+            } else if (gameState.canThrow && gameState.availableThrows.length > 0) {
+                instructionEl.innerText = "보너스 윷을 더 던지거나, 말을 이동하세요!";
+                iconEl.innerText = "✨";
+            } else if (gameState.availableThrows.length > 0) {
+                instructionEl.innerText = "사용할 윷 결과를 선택하고 말을 지정하세요.";
+                iconEl.innerText = "♟️";
+            } else {
+                instructionEl.innerText = "차례 진행 중...";
+                iconEl.innerText = "⏳";
+            }
+
+            // Throw Button Status
+            const throwBtn = document.getElementById('throw-btn');
+            if (curPlayer.isAI) {
+                throwBtn.disabled = true;
+                throwBtn.innerHTML = '<span>🤖 AI 차례 진행 중...</span>';
+                throwBtn.classList.remove('ring-pulse-gold');
+            } else {
+                throwBtn.disabled = !gameState.canThrow;
+                if (gameState.canThrow) {
+                    throwBtn.innerHTML = '<span>🪵 윷 힘차게 던지기!</span>';
+                    throwBtn.classList.add('ring-pulse-gold');
+                } else {
+                    throwBtn.innerHTML = '<span>♟️ 말을 이동해주세요</span>';
+                    throwBtn.classList.remove('ring-pulse-gold');
+                }
+            }
+
+            renderPlayerPanels();
+            renderBoardTokens();
+            renderAvailableThrowsQueue();
+        }
+
+        // Render Side Panels for Each Player
+        function renderPlayerPanels() {
+            const container = document.getElementById('player-panels');
+            container.innerHTML = '';
+
+            gameState.players.forEach((p, pIdx) => {
+                const isCurrentTurn = (pIdx === gameState.currentTurnIndex);
+                const card = document.createElement('div');
+                card.className = `bg-white/95 backdrop-blur-md p-3.5 rounded-2xl shadow-sm border-2 transition-all duration-300 ${isCurrentTurn ? 'border-amber-500 ring-4 ring-amber-300/60 bg-amber-50/70 scale-[1.02]' : 'border-amber-200 opacity-80'}`;
+
+                const finishedCount = p.pieces.filter(pc => pc.finished).length;
+
+                // Header
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full ${p.color.bg} text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                                ${p.isAI ? '🤖' : '👤'}
+                            </div>
+                            <span class="font-extrabold text-sm ${p.color.text} jua-font">${p.name}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full ${p.color.badgeBg} ${p.color.text} border border-current">
+                                완주 ${finishedCount}/4
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                // Progress Bar
+                const progBar = document.createElement('div');
+                progBar.className = 'w-full bg-slate-100 rounded-full h-1.5 mb-2.5 overflow-hidden';
+                progBar.innerHTML = `<div class="${p.color.bg} h-1.5 rounded-full transition-all duration-500" style="width: ${(finishedCount / 4) * 100}%"></div>`;
+                card.appendChild(progBar);
+
+                // Off-Board Tokens (대기 중인 말)
+                const offBoardWrapper = document.createElement('div');
+                offBoardWrapper.className = 'flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100';
+
+                const offBoardPieces = p.pieces.filter(pc => pc.node === -1 && !pc.finished);
+
+                if (offBoardPieces.length === 0) {
+                    if (finishedCount === 4) {
+                        offBoardWrapper.innerHTML = `<span class="text-[11px] text-amber-700 font-bold">🎉 모든 말 완주 완료!</span>`;
+                    } else {
+                        offBoardWrapper.innerHTML = `<span class="text-[11px] text-slate-400 italic">대기 말 없음 (모두 출전 중)</span>`;
+                    }
+                } else {
+                    offBoardPieces.forEach(pc => {
+                        const tokenBtn = document.createElement('button');
+                        const isSelected = (isCurrentTurn && gameState.selectedPieceGroupId === pc.id);
+
+                        tokenBtn.className = `px-2.5 py-1 rounded-xl border flex items-center gap-1 text-xs font-bold transition transform shadow-sm ${p.color.bg} text-white ${p.color.border} ${isSelected ? 'ring-4 ring-amber-400 scale-110 z-10 animate-pulse' : 'hover:scale-105'}`;
+                        
+                        if (!isCurrentTurn || p.isAI || gameState.availableThrows.length === 0) {
+                            tokenBtn.classList.add('cursor-not-allowed', 'opacity-80');
+                        } else {
+                            tokenBtn.onclick = () => selectPiece(pc.id);
+                        }
+
+                        tokenBtn.innerHTML = `<span>말 ${pc.id + 1}</span>`;
+                        offBoardWrapper.appendChild(tokenBtn);
+                    });
+                }
+
+                card.appendChild(offBoardWrapper);
+                container.appendChild(card);
+            });
+        }
+
+        // Render Tokens on Board Nodes
+        function renderBoardTokens() {
+            boardNodes.forEach(node => {
+                const el = document.getElementById(`node-${node.id}`);
+                if (el) el.innerHTML = '';
+            });
+
+            // Group pieces by node position
+            const nodeMap = {};
+            gameState.players.forEach((player, pIdx) => {
+                player.pieces.forEach(pc => {
+                    if (pc.finished || pc.node === -1) return;
+                    if (!nodeMap[pc.node]) nodeMap[pc.node] = [];
+                    nodeMap[pc.node].push({ playerIndex: pIdx, piece: pc });
+                });
+            });
+
+            // Render Tokens on Nodes
+            for (let nodeId in nodeMap) {
+                const nodeEl = document.getElementById(`node-${nodeId}`);
+                if (!nodeEl) continue;
+
+                const items = nodeMap[nodeId];
+                const tokenContainer = document.createElement('div');
+                tokenContainer.className = 'w-full h-full flex items-center justify-center relative cursor-pointer';
+
+                // Consolidate stacked friendly pieces
+                const stackedByPlayer = {};
+                items.forEach(item => {
+                    if (!stackedByPlayer[item.playerIndex]) stackedByPlayer[item.playerIndex] = [];
+                    stackedByPlayer[item.playerIndex].push(item.piece);
+                });
+
+                let renderOffset = 0;
+                for (let pIdxStr in stackedByPlayer) {
+                    const pIdx = parseInt(pIdxStr);
+                    const player = gameState.players[pIdx];
+                    const pieceGroup = stackedByPlayer[pIdxStr];
+                    const isCurrentPlayer = (pIdx === gameState.currentTurnIndex);
+                    const leaderPiece = pieceGroup[0];
+                    const isSelected = (isCurrentPlayer && gameState.selectedPieceGroupId === leaderPiece.id);
+
+                    const token = document.createElement('div');
+                    token.className = `w-6 h-6 sm:w-7 sm:h-7 rounded-full ${player.color.bg} ${player.color.border} border-2 shadow-md flex items-center justify-center text-[10px] sm:text-xs text-white font-extrabold transition transform hover:scale-110 select-none ${isSelected ? 'ring-4 ring-amber-400 scale-125 z-20 animate-bounce-short' : ''}`;
+                    
+                    if (renderOffset > 0) {
+                        token.style.position = 'absolute';
+                        token.style.transform = `translate(${renderOffset * 4}px, -${renderOffset * 4}px)`;
+                    }
+
+                    if (pieceGroup.length > 1) {
+                        token.innerText = `${pieceGroup.length}업`;
+                        token.title = `${player.name}의 말 ${pieceGroup.length}개 업힘`;
+                    } else {
+                        token.innerText = leaderPiece.id + 1;
+                    }
+
+                    // Click to select friendly token
+                    if (isCurrentPlayer && !player.isAI && gameState.availableThrows.length > 0) {
+                        token.onclick = (e) => {
+                            e.stopPropagation();
+                            selectPiece(leaderPiece.id);
+                        };
+                    }
+
+                    tokenContainer.appendChild(token);
+                    renderOffset++;
+                }
+
+                nodeEl.appendChild(tokenContainer);
+            }
+
+            // Highlight Destination Spots with Pulse & Interactive Action Badge
+            gameState.validDestinations.forEach(destObj => {
+                let nodeEl;
+                if (destObj.destNode === 999) {
+                    nodeEl = document.getElementById('node-0'); // Goal represented on node 0
+                } else {
+                    nodeEl = document.getElementById(`node-${destObj.destNode}`);
+                }
+
+                if (nodeEl) {
+                    const hl = document.createElement('div');
+                    hl.className = 'absolute inset-0 rounded-full bg-emerald-500/80 ring-4 ring-emerald-300 animate-pulse cursor-pointer pointer-events-auto z-30 flex flex-col items-center justify-center text-[9px] sm:text-[11px] font-black text-white shadow-lg';
+                    
+                    let actionText = '이동';
+                    if (destObj.actionType === 'capture') actionText = '⚔️ 잡기!';
+                    else if (destObj.actionType === 'carry') actionText = '🤝 업기!';
+                    else if (destObj.actionType === 'finish') actionText = '🏁 완주!';
+                    else if (destObj.actionType === 'corner') actionText = '⭐ 지름길';
+
+                    hl.innerHTML = `<span>${actionText}</span>`;
+                    hl.onclick = (e) => {
+                        e.stopPropagation();
+                        executeMove(destObj);
+                    };
+                    nodeEl.appendChild(hl);
+                }
+            });
+        }
+
+        // Render Available Throw Queue
+        function renderAvailableThrowsQueue() {
+            const container = document.getElementById('available-throws');
+            container.innerHTML = '';
+
+            if (gameState.availableThrows.length === 0) {
+                container.innerHTML = `<span class="text-xs text-slate-400 italic w-full text-center">던진 결과가 여기에 보관됩니다.</span>`;
+                return;
+            }
+
+            const curPlayer = gameState.players[gameState.currentTurnIndex];
+
+            gameState.availableThrows.forEach((t, idx) => {
+                const isSelected = (gameState.selectedThrowIndex === idx);
+                const btn = document.createElement('button');
+                btn.className = `px-3.5 py-1.5 rounded-2xl text-xs sm:text-sm font-extrabold shadow-sm transition jua-font flex items-center gap-1.5 border-2 ${isSelected ? 'bg-amber-600 text-white border-amber-800 ring-4 ring-amber-300 scale-105' : 'bg-white text-amber-950 border-amber-300 hover:bg-amber-100'}`;
+                
+                // Color badge for BackDo vs regular
+                if (t.name === '백도') {
+                    btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-600 inline-block"></span> <span>백도 (-1)</span>`;
+                } else if (t.name === '윷' || t.name === '모') {
+                    btn.innerHTML = `<span>✨ ${t.name} (+${t.steps})</span>`;
+                } else {
+                    btn.innerHTML = `<span>${t.name} (+${t.steps})</span>`;
+                }
+
+                if (!curPlayer.isAI) {
+                    btn.onclick = () => selectThrowResult(idx);
+                } else {
+                    btn.classList.add('cursor-default');
+                }
+
+                container.appendChild(btn);
+            });
+        }
+
+        // Helper: Check if player has active pieces on board
+        function hasPiecesOnBoard(playerIndex) {
+            const p = gameState.players[playerIndex];
+            return p.pieces.some(pc => pc.node !== -1 && !pc.finished);
+        }
+
+        // User Click on Throw Button
+        function handleUserThrowClick() {
+            const curPlayer = gameState.players[gameState.currentTurnIndex];
+            if (curPlayer.isAI || !gameState.canThrow) return;
+            performThrowYut();
+        }
+
+        // Unified Throw Yut Logic (Physical probabilities: Flat 45%, Curved 55%)
+        function performThrowYut() {
+            if (!gameState.canThrow) return;
+
+            SoundFX.playThrow();
+
+            // Roll 4 Yut Sticks
+            // stick[0] is Back-Do stick (with dot)
+            const sticks = [
+                Math.random() < 0.45,
+                Math.random() < 0.45,
+                Math.random() < 0.45,
+                Math.random() < 0.45
+            ];
+
+            gameState.lastSticksState = sticks;
+            renderYutSticks(sticks, true);
+
+            const flatCount = sticks.filter(Boolean).length;
+            let res;
+
+            if (flatCount === 1) {
+                if (sticks[0] === true) {
+                    res = { name: '백도', steps: -1, extraThrow: false };
+                } else {
+                    res = { name: '도', steps: 1, extraThrow: false };
+                }
+            } else if (flatCount === 2) {
+                res = { name: '개', steps: 2, extraThrow: false };
+            } else if (flatCount === 3) {
+                res = { name: '걸', steps: 3, extraThrow: false };
+            } else if (flatCount === 4) {
+                res = { name: '윷', steps: 4, extraThrow: true };
+            } else { // flatCount === 0
+                res = { name: '모', steps: 5, extraThrow: true };
+            }
+
+            const resultBadge = document.getElementById('yut-result-badge');
+            resultBadge.innerHTML = `<span class="text-2xl font-extrabold text-amber-950 jua-font px-4 py-1 bg-amber-100 rounded-2xl border border-amber-300 shadow-inner animate-pulse">${res.name}!</span>`;
+
+            const curPlayer = gameState.players[gameState.currentTurnIndex];
+            const activeOnBoard = hasPiecesOnBoard(gameState.currentTurnIndex);
+
+            // Back-Do Exception Handling:
+            if (res.name === '백도' && !activeOnBoard) {
+                const hasOtherValidThrows = gameState.availableThrows.some(t => t.name !== '백도');
+                if (hasOtherValidThrows) {
+                    gameState.availableThrows.push(res);
+                    if (gameState.selectedThrowIndex === null) gameState.selectedThrowIndex = 0;
+                    gameState.canThrow = res.extraThrow;
+                    addLog(`${curPlayer.name}님이 '<strong>백도</strong>'를 던졌습니다. (보유한 다른 윷으로 말을 먼저 출전시켜 사용 가능)`);
+                } else {
+                    addLog(`↩️ ${curPlayer.name}님이 '<strong>백도</strong>'를 던졌으나 판에 말이 없고 출전 가능한 윷이 없어 취소됩니다!`);
+                    gameState.canThrow = res.extraThrow;
+
+                    if (gameState.availableThrows.length === 0 && !gameState.canThrow) {
+                        showModal("백도 자동 취소 & 턴 이동", `${curPlayer.name}님 판에 이동시킬 수 있는 말이 없어 백도가 취소되고 다음 사람 턴으로 이동합니다.`);
+                        nextTurn();
+                        return;
+                    } else {
+                        showModal("백도 자동 취소", `${curPlayer.name}님 판에 말이 없어 이번 백도는 취소 처리됩니다.`);
+                    }
+                }
+            } else {
+                gameState.availableThrows.push(res);
+                if (gameState.selectedThrowIndex === null) gameState.selectedThrowIndex = 0;
+
+                if (res.extraThrow) {
+                    addLog(`🎉 ${curPlayer.name}님이 '<strong>${res.name}</strong>'을(를) 던져 <strong>한 번 더 던집니다!</strong>`);
+                    gameState.canThrow = true;
+                } else {
+                    addLog(`${curPlayer.name}님이 '<strong>${res.name}</strong>'을(를) 던졌습니다.`);
+                    gameState.canThrow = false;
+                }
+            }
+
+            updateUI();
+
+            if (gameState.selectedPieceGroupId !== null) {
+                calculateValidDestinations();
+            }
+        }
+
+        // Selection of Throw Result from Queue
+        function selectThrowResult(throwIdx) {
+            gameState.selectedThrowIndex = throwIdx;
+            renderAvailableThrowsQueue();
+            if (gameState.selectedPieceGroupId !== null) {
+                calculateValidDestinations();
+            }
+        }
+
+        // Selection of a Piece
+        function selectPiece(pieceId) {
+            if (gameState.availableThrows.length === 0) {
+                showModal("알림", "먼저 윷을 던져주세요!");
+                return;
+            }
+
+            gameState.selectedPieceGroupId = pieceId;
+
+            if (gameState.selectedThrowIndex === null) {
+                gameState.selectedThrowIndex = 0;
+            }
+
+            calculateValidDestinations();
+            updateUI();
+        }
+
+        // Calculate Valid Targets for Currently Selected Piece & Throw Result
+        function calculateValidDestinations() {
+            gameState.validDestinations = [];
+            if (gameState.selectedPieceGroupId === null || gameState.selectedThrowIndex === null) return;
+
+            const player = gameState.players[gameState.currentTurnIndex];
+            const piece = player.pieces[gameState.selectedPieceGroupId];
+            const throwObj = gameState.availableThrows[gameState.selectedThrowIndex];
+
+            if (!piece || piece.finished) return;
+
+            // Baek-Do from yard is not permitted
+            if (piece.node === -1 && throwObj.steps === -1) {
+                showModal("알림", "대기실에 있는 말은 백도로 출전할 수 없습니다.");
+                return;
+            }
+
+            const dest = getNextBoardNode(piece.node, throwObj.steps);
+
+            // Determine action type (capture, carry, finish, corner)
+            let actionType = 'normal';
+            if (dest === 999 || (piece.node === 0 && dest === 0)) {
+                actionType = 'finish';
+            } else {
+                // Check capture
+                for (let i = 0; i < gameState.players.length; i++) {
+                    if (i !== gameState.currentTurnIndex) {
+                        const hasOpp = gameState.players[i].pieces.some(op => !op.finished && op.node === dest);
+                        if (hasOpp) {
+                            actionType = 'capture';
+                            break;
+                        }
+                    }
+                }
+                // Check carry
+                if (actionType !== 'capture') {
+                    const hasFriendly = player.pieces.some(p => !p.finished && p.node === dest && p.id !== piece.id);
+                    if (hasFriendly) actionType = 'carry';
+                    else if (dest === 5 || dest === 10 || dest === 23) actionType = 'corner';
+                }
+            }
+
+            gameState.validDestinations.push({
+                pieceId: piece.id,
+                throwIndex: gameState.selectedThrowIndex,
+                destNode: dest,
+                actionType: actionType
+            });
+
+            renderBoardTokens();
+        }
+
+        // Navigation Path Logic
+        function getNextBoardNode(startNode, steps) {
+            // Out of yard (출전)
+            if (startNode === -1) {
+                if (steps === -1) return -1;
+                return steps; // 도=1, 개=2, 걸=3, 윷=4, 모=5
+            }
+
+            // Back-Do (-1)
+            if (steps === -1) {
+                if (startNode === 0) return 19;
+                if (startNode === 21) return 5;
+                if (startNode === 28) return 10;
+                if (startNode === 23) return 22;
+                if (startNode === 24) return 23;
+                if (startNode === 26) return 23;
+                return startNode - 1;
+            }
+
+            let current = startNode;
+            for (let i = 0; i < steps; i++) {
+                if (i === 0 && current === 5) {
+                    current = 21;
+                    continue;
+                }
+                if (i === 0 && current === 10) {
+                    current = 28;
+                    continue;
+                }
+                if (current === 23) {
+                    current = 24;
+                    continue;
+                }
+
+                if (current === 21) current = 22;
+                else if (current === 22) current = 23;
+                else if (current === 28) current = 29;
+                else if (current === 29) current = 23;
+                else if (current === 24) current = 25;
+                else if (current === 25) current = 0;
+                else if (current === 26) current = 27;
+                else if (current === 27) current = 15;
+                else if (current === 0) return 999; // Finish
+                else if (current === 19) current = 0;
+                else current = current + 1;
+            }
+
+            return current;
+        }
+
+        // Execute Move (Handles Capturing, Carrying, Finishing, FX)
+        function executeMove(destObj) {
+            const player = gameState.players[gameState.currentTurnIndex];
+            const leaderPiece = player.pieces[destObj.pieceId];
+            const startNode = leaderPiece.node;
+            const targetNode = destObj.destNode;
+            const usedThrow = gameState.availableThrows[destObj.throwIndex];
+
+            // Remove used throw from queue
+            gameState.availableThrows.splice(destObj.throwIndex, 1);
+            gameState.selectedThrowIndex = null;
+            gameState.selectedPieceGroupId = null;
+            gameState.validDestinations = [];
+
+            // Stacked pieces moving together
+            let movingPieces = [leaderPiece];
+            if (startNode !== -1) {
+                player.pieces.forEach(p => {
+                    if (!p.finished && p.node === startNode && p.id !== leaderPiece.id) {
+                        movingPieces.push(p);
+                    }
+                });
+            }
+
+            let capturedOpponent = false;
+            let carriedCount = 0;
+
+            // Target Node Element Position for FX
+            const targetNodeId = (targetNode === 999) ? 0 : targetNode;
+            const targetEl = document.getElementById(`node-${targetNodeId}`);
+            let fxX = window.innerWidth / 2;
+            let fxY = window.innerHeight / 2;
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect();
+                fxX = rect.left + rect.width / 2;
+                fxY = rect.top + rect.height / 2;
+            }
+
+            if (targetNode === 999 || (startNode === 0 && targetNode === 0)) {
+                // Goal / Finished
+                movingPieces.forEach(p => {
+                    p.finished = true;
+                    p.node = -1;
+                });
+                SoundFX.playMove();
+                showFloatingToast(`🏁 말 ${movingPieces.length}개 완주!`);
+                addLog(`🏁 ${player.name}의 말 <strong>${movingPieces.length}개</strong>가 완주했습니다!`);
+            } else {
+                // Check Carrying (업기)
+                const friendlyPiecesAtDest = player.pieces.filter(p => !p.finished && p.node === targetNode);
+                if (friendlyPiecesAtDest.length > 0) {
+                    carriedCount = movingPieces.length + friendlyPiecesAtDest.length;
+                    SoundFX.playCarry();
+                    ParticleFX.triggerCarryEffect(fxX, fxY);
+                    showFloatingToast(`🤝 ${carriedCount}업 합체!`, 'bg-amber-500 text-white');
+                    addLog(`🤝 ${player.name}님의 말이 합쳐져 <strong>${carriedCount}개 업기</strong> 상태가 되었습니다!`);
+                } else {
+                    SoundFX.playMove();
+                }
+
+                // Move all carried pieces to destination
+                movingPieces.forEach(p => {
+                    p.node = targetNode;
+                });
+
+                // Check Capturing Opponents (잡기)
+                gameState.players.forEach((otherPlayer, pIdx) => {
+                    if (pIdx !== gameState.currentTurnIndex) {
+                        const opponentsAtNode = otherPlayer.pieces.filter(op => !op.finished && op.node === targetNode);
+                        if (opponentsAtNode.length > 0) {
+                            opponentsAtNode.forEach(op => {
+                                op.node = -1; // Reset to Yard
+                            });
+                            capturedOpponent = true;
+                            
+                            // Visual & Audio Impact
+                            SoundFX.playCapture();
+                            triggerScreenShakeAndFlash();
+                            ParticleFX.triggerCaptureExplosion(fxX, fxY);
+                            showFloatingToast(`💥 잡았다!!`, 'bg-red-600 text-white font-black text-2xl');
+                            addLog(`⚔️ ${player.name}님이 <strong>${otherPlayer.name}의 말 ${opponentsAtNode.length}개</strong>를 <strong>잡았습니다!</strong> (추가 던지기 획득)`);
+                        }
+                    }
+                });
+            }
+
+            // Victory Check
+            const isVictorious = player.pieces.every(p => p.finished);
+            if (isVictorious) {
+                triggerVictory(player);
+                return;
+            }
+
+            // If captured opponent, grant an extra throw!
+            if (capturedOpponent) {
+                gameState.canThrow = true;
+            }
+
+            // Cleanup unusable Back-Dos if no pieces left on board
+            cleanUnusableBackDos();
+
+            // Next turn check
+            updateUI();
+            checkTurnEnd();
+        }
+
+        // Screen Shake & Flash Effect on Capture
+        function triggerScreenShakeAndFlash() {
+            const board = document.getElementById('board');
+            board.classList.remove('animate-shake');
+            void board.offsetWidth; // Trigger reflow
+            board.classList.add('animate-shake');
+
+            const flash = document.getElementById('screen-flash');
+            flash.className = 'fixed inset-0 pointer-events-none z-40 bg-red-600/30 screen-flash-red';
+            setTimeout(() => {
+                flash.className = 'fixed inset-0 pointer-events-none z-40 transition-opacity';
+            }, 400);
+        }
+
+        // Show Temporary Floating Toast over Board
+        function showFloatingToast(text, customClasses = 'bg-amber-600 text-white') {
+            const container = document.getElementById('board-toast-overlay');
+            const toast = document.createElement('div');
+            toast.className = `px-5 py-2.5 rounded-2xl shadow-2xl text-lg sm:text-xl font-black jua-font animate-pop-in pointer-events-none z-30 ${customClasses}`;
+            toast.innerText = text;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transition = 'all 0.5s ease-out';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-30px) scale(0.9)';
+                setTimeout(() => toast.remove(), 500);
+            }, 1200);
+        }
+
+        // Clean unusable Back-Dos from queue
+        function cleanUnusableBackDos() {
+            const activeOnBoard = hasPiecesOnBoard(gameState.currentTurnIndex);
+            if (!activeOnBoard) {
+                const hasOtherValidThrows = gameState.availableThrows.some(t => t.name !== '백도');
+                if (!hasOtherValidThrows) {
+                    const removedBackDos = gameState.availableThrows.filter(t => t.name === '백도').length;
+                    if (removedBackDos > 0) {
+                        gameState.availableThrows = gameState.availableThrows.filter(t => t.name !== '백도');
+                        addLog(`↩️ 판 위에 말이 없어 남은 백도(${removedBackDos}개)가 자동 취소되었습니다.`);
+                    }
+                }
+            }
+        }
+
+        // Turn Completion Logic
+        function checkTurnEnd() {
+            if (gameState.availableThrows.length === 0 && !gameState.canThrow) {
+                nextTurn();
+            } else {
+                checkAndRunAITurn();
+            }
+        }
+
+        // Advance to Next Player Turn
+        function nextTurn() {
+            gameState.currentTurnIndex = (gameState.currentTurnIndex + 1) % gameState.numPlayers;
+            gameState.availableThrows = [];
+            gameState.selectedThrowIndex = null;
+            gameState.selectedPieceGroupId = null;
+            gameState.validDestinations = [];
+            gameState.canThrow = true;
+            gameState.isProcessingAI = false;
+
+            const nextPlayer = gameState.players[gameState.currentTurnIndex];
+            addLog(`🔄 차례 이동: <strong class="${nextPlayer.color.text}">${nextPlayer.name}</strong> (${nextPlayer.isAI ? '컴퓨터 AI' : '플레이어'})`);
+            updateUI();
+
+            checkAndRunAITurn();
+        }
+
+        // Victory Event
+        function triggerVictory(player) {
+            gameState.gameOver = true;
+            SoundFX.playWin();
+            ParticleFX.triggerVictoryConfetti();
+
+            const modal = document.getElementById('victory-modal');
+            const winnerNameEl = document.getElementById('winner-name');
+            winnerNameEl.innerText = `${player.name} (${player.isAI ? '컴퓨터' : '사람'})`;
+            winnerNameEl.className = `inline-block px-5 py-2 text-2xl font-black rounded-2xl text-white shadow-md jua-font ${player.color.bg}`;
+
+            addLog(`🏆 <strong>[게임 종료] ${player.name}님이 최종 승리하셨습니다!</strong>`);
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function rematchGame() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('victory-modal').classList.remove('flex');
+            initGameWithConfigs(gameState.players.map(p => ({ name: p.name, isAI: p.isAI })));
+        }
+
+        function openModeSelectModal() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('victory-modal').classList.remove('flex');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('restart-header-btn').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+            toggleCustomSetup(false);
+        }
+
+        // ==============================================
+        // Computer (AI) Engine: Heuristic Evaluator
+        // ==============================================
+        async function checkAndRunAITurn() {
+            if (gameState.gameOver) return;
+            const curPlayer = gameState.players[gameState.currentTurnIndex];
+            if (!curPlayer.isAI || gameState.isProcessingAI) return;
+
+            gameState.isProcessingAI = true;
+            updateUI();
+
+            // AI Loop: Roll and Move until turn ends
+            while (curPlayer.isAI && !gameState.gameOver && gameState.players[gameState.currentTurnIndex].id === curPlayer.id) {
+                // Step 1: If AI can throw, throw!
+                if (gameState.canThrow) {
+                    setAIStatusText("AI가 윷을 힘차게 던집니다...");
+                    await delay(1100);
+                    if (gameState.gameOver || gameState.players[gameState.currentTurnIndex].id !== curPlayer.id) break;
+                    
+                    performThrowYut();
+                    await delay(800);
+
+                    // If rolled Yut or Mo, AI may have another throw: check if it should throw again or move
+                    if (gameState.canThrow) {
+                        continue;
+                    }
+                }
+
+                // Step 2: If AI has throw results in queue, calculate optimal move
+                if (gameState.availableThrows.length > 0) {
+                    setAIStatusText("AI가 최선의 수를 고민하고 있습니다...");
+                    await delay(1000);
+                    if (gameState.gameOver || gameState.players[gameState.currentTurnIndex].id !== curPlayer.id) break;
+
+                    const bestMove = evaluateBestAIMove(curPlayer);
+
+                    if (bestMove) {
+                        setAIStatusText(`AI가 '${bestMove.throwName}'으로 말을 이동합니다!`);
+                        // Select and highlight for player visibility
+                        gameState.selectedThrowIndex = bestMove.throwIndex;
+                        gameState.selectedPieceGroupId = bestMove.pieceId;
+                        calculateValidDestinations();
+                        updateUI();
+
+                        await delay(700);
+                        if (gameState.gameOver) break;
+
+                        executeMove({
+                            pieceId: bestMove.pieceId,
+                            throwIndex: bestMove.throwIndex,
+                            destNode: bestMove.destNode,
+                            actionType: bestMove.actionType
+                        });
+
+                        await delay(800);
+                    } else {
+                        // No valid move possible (e.g., trapped back-do)
+                        cleanUnusableBackDos();
+                        if (gameState.availableThrows.length === 0 && !gameState.canThrow) {
+                            nextTurn();
+                            break;
+                        }
+                    }
+                } else if (!gameState.canThrow) {
+                    nextTurn();
+                    break;
+                }
+            }
+
+            gameState.isProcessingAI = false;
+            updateUI();
+        }
+
+        function setAIStatusText(text) {
+            const el = document.getElementById('ai-status-text');
+            if (el) el.innerText = text;
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Heuristic AI Move Evaluator
+        function evaluateBestAIMove(player) {
+            const possibleMoves = [];
+
+            // Group player's pieces on board into group leaders to avoid redundant evaluations
+            const candidatePieces = [];
+            const yardPiece = player.pieces.find(p => p.node === -1 && !p.finished);
+            if (yardPiece) candidatePieces.push(yardPiece);
+
+            const onBoardGrouped = {};
+            player.pieces.forEach(p => {
+                if (p.node !== -1 && !p.finished) {
+                    if (!onBoardGrouped[p.node]) {
+                        onBoardGrouped[p.node] = p;
+                        candidatePieces.push(p);
+                    }
+                }
+            });
+
+            if (candidatePieces.length === 0) return null;
+
+            // Test every candidate piece with every available throw
+            gameState.availableThrows.forEach((throwObj, throwIdx) => {
+                candidatePieces.forEach(pc => {
+                    // Cannot use Back-Do from yard
+                    if (pc.node === -1 && throwObj.steps === -1) return;
+
+                    const dest = getNextBoardNode(pc.node, throwObj.steps);
+                    
+                    // Score this move
+                    const score = scoreAIMove(player, pc, throwObj, dest);
+                    possibleMoves.push({
+                        pieceId: pc.id,
+                        throwIndex: throwIdx,
+                        throwName: throwObj.name,
+                        destNode: dest,
+                        score: score
+                    });
+                });
+            });
+
+            if (possibleMoves.length === 0) return null;
+
+            // Sort by score descending (with slight random jitter in normal difficulty)
+            possibleMoves.sort((a, b) => {
+                const jitterA = (gameState.aiDifficulty === 'normal') ? (Math.random() * 80 - 40) : 0;
+                const jitterB = (gameState.aiDifficulty === 'normal') ? (Math.random() * 80 - 40) : 0;
+                return (b.score + jitterB) - (a.score + jitterA);
+            });
+
+            return possibleMoves[0];
+        }
+
+        // AI Move Scoring Function
+        function scoreAIMove(player, piece, throwObj, destNode) {
+            let score = 0;
+            const startNode = piece.node;
+
+            // Carried friendly count in this piece's group
+            let carriedCount = 1;
+            if (startNode !== -1) {
+                carriedCount = player.pieces.filter(p => !p.finished && p.node === startNode).length;
+            }
+
+            // 1. Goal / Finish (+1000 base + 500 per carried piece)
+            if (destNode === 999 || (startNode === 0 && destNode === 0)) {
+                score += 1000 + (carriedCount - 1) * 600;
+                return score;
+            }
+
+            // 2. Capture Opponent (+1200 base + extra throw value + extra for capturing stacked opponents)
+            let willCapture = false;
+            let capturedPiecesCount = 0;
+            gameState.players.forEach((otherPlayer, pIdx) => {
+                if (pIdx !== gameState.currentTurnIndex) {
+                    const victims = otherPlayer.pieces.filter(op => !op.finished && op.node === destNode);
+                    if (victims.length > 0) {
+                        willCapture = true;
+                        capturedPiecesCount += victims.length;
+                    }
+                }
+            });
+
+            if (willCapture) {
+                score += 1200 + (capturedPiecesCount - 1) * 500;
+            }
+
+            // 3. Carrying Friendly Pieces (+450 base)
+            const friendlyAtDest = player.pieces.filter(p => !p.finished && p.node === destNode && p.id !== piece.id);
+            if (friendlyAtDest.length > 0) {
+                score += 450 + (friendlyAtDest.length * 150);
+            }
+
+            // 4. Strategic Corners & Center (+300 for 5, 10, 23 - shortcut entryways)
+            if (destNode === 5 || destNode === 10) {
+                score += 350; // Takes the shortcut
+            } else if (destNode === 23) {
+                score += 380; // Center room gives shortest path to finish
+            }
+
+            // 5. Introducing a new piece from Yard
+            if (startNode === -1) {
+                const totalActive = player.pieces.filter(p => p.node !== -1 && !p.finished).length;
+                if (totalActive === 0) {
+                    score += 250; // Must introduce if no active pieces
+                } else if (totalActive < 2) {
+                    score += 120;
+                }
+            } else {
+                // Forward Progress bonus
+                score += throwObj.steps * 25;
+            }
+
+            // 6. Risk Penalty: Check if landing spot can be captured by an opponent behind it
+            if (!willCapture) {
+                let danger = false;
+                gameState.players.forEach((otherPlayer, pIdx) => {
+                    if (pIdx !== gameState.currentTurnIndex) {
+                        otherPlayer.pieces.forEach(op => {
+                            if (!op.finished && op.node !== -1) {
+                                // Check if opponent is 1~5 steps behind destNode
+                                for (let s = 1; s <= 5; s++) {
+                                    if (getNextBoardNode(op.node, s) === destNode) {
+                                        danger = true;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+
+                if (danger) {
+                    // Risk is multiplied if moving multiple stacked pieces
+                    score -= (280 * carriedCount);
+                }
+            }
+
+            return score;
+        }
+
+        // ==============================================
+        // UI Helpers: Modals & Logs
+        // ==============================================
+        function addLog(msg) {
+            const container = document.getElementById('game-logs');
+            const item = document.createElement('div');
+            item.className = 'border-b border-slate-100 pb-1 text-slate-700 leading-snug';
+            item.innerHTML = `• ${msg}`;
+            container.insertBefore(item, container.firstChild);
+        }
+
+        function clearLogs() {
+            document.getElementById('game-logs').innerHTML = `<div class="text-slate-400 italic">기록이 초기화되었습니다.</div>`;
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = msg;
+            const modal = document.getElementById('modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        function openRulesModal() {
+            const modal = document.getElementById('rules-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRulesModal() {
+            const modal = document.getElementById('rules-modal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        // Initialize setup on load
+        window.addEventListener('load', () => {
+            renderCustomConfigList();
+        });
+    </script>
+</body>
+</html>
