@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AETHERIA: 대지에서 심우주로의 항해</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Pretendard:wght@300;400;600;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #020208;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #e2e8f0;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI 오버레이 레이아웃 */
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 30px;
+      transition: opacity 0.4s ease;
+    }
+
+    #ui-layer.hide-ui {
+      opacity: 0;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* 상단 좌측 로고 & 고도 HUD */
+    .top-left-hud {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .game-logo {
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 5px;
+      background: linear-gradient(135deg, #ffffff 20%, #7dd3fc 60%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 16px rgba(125, 211, 252, 0.4));
+    }
+
+    .current-zone-tag {
+      font-size: 13px;
+      letter-spacing: 1px;
+      color: #38bdf8;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 3px 12px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: inline-block;
+      width: fit-content;
+      transition: all 0.5s ease;
+    }
+
+    .metrics-panel {
+      display: flex;
+      gap: 16px;
+      margin-top: 4px;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      width: fit-content;
+    }
+
+    .metric-item {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+    }
+
+    .metric-unit {
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    /* 우측 상단: 항해 미니맵 Overlay */
+    .minimap-container {
+      position: absolute;
+      top: 24px;
+      right: 30px;
+      width: 140px;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(56, 189, 248, 0.05);
+    }
+
+    .minimap-header {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #7dd3fc;
+      text-align: center;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .minimap-track {
+      position: relative;
+      height: 240px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .minimap-line {
+      position: absolute;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to top, #38bdf8, #818cf8, #c084fc, #f43f5e);
+      border-radius: 1px;
+      opacity: 0.5;
+    }
+
+    .minimap-node {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .minimap-node-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin: 0 auto;
+      background: #94a3b8;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+    }
+
+    .minimap-node-label {
+      position: absolute;
+      left: 18px;
+      font-size: 9px;
+      color: #cbd5e1;
+      white-space: nowrap;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    }
+
+    .minimap-ship-marker {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #38bdf8;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      left: calc(50% - 5px);
+      transform: translateY(-50%);
+      box-shadow: 0 0 10px #38bdf8, 0 0 20px #38bdf8;
+      transition: bottom 0.1s linear;
+      z-index: 5;
+    }
+
+    /* 우측 하단: 속도 슬라이더 (0.3x ~ 4.0x) */
+    .speed-slider-card {
+      position: absolute;
+      bottom: 24px;
+      right: 30px;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 230px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-title {
+      font-size: 11px;
+      letter-spacing: 1.2px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .slider-mode-tag {
+      font-size: 11px;
+      color: #38bdf8;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .speed-slider-card input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .speed-slider-card input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s ease;
+    }
+
+    .speed-slider-card input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    /* 하단 중앙: 중력 닻 및 조작 퀵 바 */
+    .bottom-center-hud {
+      align-self: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .anchor-btn {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #e2e8f0;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s ease;
+    }
+
+    .anchor-btn:hover {
+      background: rgba(30, 41, 59, 0.85);
+      border-color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .anchor-btn.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.8), rgba(99, 102, 241, 0.8));
+      border-color: #bae6fd;
+      color: #ffffff;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+      animation: anchorPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes anchorPulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+      50% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9); }
+    }
+
+    .hud-controls-help {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(8px);
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    kbd {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 10px;
+      color: #ffffff;
+      font-family: monospace;
+    }
+
+    /* 초기 중앙 이륙 (LAUNCH) 모달 & 시네마틱 */
+    #launch-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 50;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, rgba(3, 7, 18, 0.3) 0%, rgba(3, 7, 18, 0.85) 100%);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), visibility 1s ease;
+    }
+
+    #launch-overlay.launched {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .launch-card {
+      text-align: center;
+      max-width: 460px;
+      padding: 40px 32px;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 28px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(56, 189, 248, 0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      transform: translateY(0);
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .launch-earth-icon {
+      font-size: 46px;
+      filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.8));
+      animation: floatEarth 4s ease-in-out infinite;
+    }
+
+    @keyframes floatEarth {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .launch-card h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #f8fafc;
+    }
+
+    .launch-card p {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .launch-btn {
+      margin-top: 10px;
+      padding: 15px 44px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #030712;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      border: none;
+      border-radius: 40px;
+      cursor: pointer;
+      box-shadow: 0 6px 25px rgba(56, 189, 248, 0.5);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .launch-btn:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 10px 35px rgba(129, 140, 248, 0.7);
+      filter: brightness(1.1);
+    }
+
+    /* 궤도 관람 안내 배너 */
+    .orbit-banner {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 20px;
+      padding: 10px 24px;
+      font-size: 13px;
+      color: #bae6fd;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      z-index: 20;
+    }
+
+    .orbit-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 상단 우측 버튼 그룹 */
+    .top-action-group {
+      position: absolute;
+      top: 24px;
+      right: 190px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .hud-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .hud-icon-btn:hover {
+      background: rgba(30, 41, 59, 0.85);
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    /* 반응형 레이아웃 */
+    @media (max-width: 768px) {
+      #ui-layer {
+        padding: 16px;
+      }
+      .game-logo {
+        font-size: 20px;
+      }
+      .minimap-container {
+        width: 100px;
+        right: 16px;
+        top: 16px;
+      }
+      .speed-slider-card {
+        right: 16px;
+        bottom: 16px;
+        width: 190px;
+      }
+      .top-action-group {
+        right: 125px;
+      }
+      .hud-controls-help {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 메인 캔버스 -->
+  <div id="canvas-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- UI 오버레이 -->
+  <div id="ui-layer">
+    <!-- 상단 좌측: 타이틀 및 고도/속도 HUD -->
+    <div class="top-left-hud interactive">
+      <div class="title-row">
+        <h1 class="game-logo">AETHERIA</h1>
+      </div>
+      <div class="current-zone-tag" id="zoneTag">지구 표면 기지 (Ground Base)</div>
+      <div class="metrics-panel">
+        <div class="metric-item">
+          <span class="metric-label">고도</span>
+          <span class="metric-value" id="altDisplay">0</span>
+          <span class="metric-unit">km</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">속도</span>
+          <span class="metric-value" id="speedDisplay">0</span>
+          <span class="metric-unit">AU/h</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상단 액션 버튼 그룹 (사운드, UI 숨김, 리셋) -->
+    <div class="top-action-group interactive">
+      <button class="hud-icon-btn" id="audioToggleBtn" title="배경 사운드 토글 (M)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+      <button class="hud-icon-btn" id="resetBtn" title="지구로 귀환 (R)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+      <button class="hud-icon-btn" id="hideUiBtn" title="풍경 감상 모드 (H)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 우측 상단: 항해 미니맵 Overlay -->
+    <div class="minimap-container interactive" id="minimap">
+      <div class="minimap-header">Navigation Track</div>
+      <div class="minimap-track" id="minimapTrack">
+        <div class="minimap-line"></div>
+        <!-- 행성 노드들이 동적으로 렌더링됨 -->
+        <div class="minimap-ship-marker" id="minimapShip"></div>
+      </div>
+    </div>
+
+    <!-- 궤도 관람 안내 배너 -->
+    <div class="orbit-banner" id="orbitBanner">
+      <span>⚓</span>
+      <span id="orbitBannerText">중력 닻 정박 중 — 천체 궤도에서 풍경을 감상하고 있습니다</span>
+    </div>
+
+    <!-- 하단 중앙: 중력 닻 토글 및 힌트 -->
+    <div class="bottom-center-hud interactive">
+      <button class="anchor-btn" id="anchorToggleBtn">
+        <span class="anchor-symbol">⚓</span>
+        <span id="anchorBtnText">중력 닻 내리기 [Space]</span>
+      </button>
+      <div class="hud-controls-help">
+        <span><kbd>Mouse</kbd> 방향 조종 & 가속</span>
+        <span><kbd>Space</kbd> 궤도 정박</span>
+        <span><kbd>H</kbd> UI 숨김</span>
+        <span><kbd>R</kbd> 재이륙</span>
+      </div>
+    </div>
+
+    <!-- 우측 하단: 항해 속도 조절 슬라이더 (0.3x ~ 4.0x) -->
+    <div class="speed-slider-card interactive">
+      <div class="slider-header">
+        <span class="slider-title">Warp Drive Speed</span>
+        <span class="slider-mode-tag" id="warpModeTag">1.0x (Cruise)</span>
+      </div>
+      <input type="range" id="speedSlider" min="0.3" max="4.0" step="0.1" value="1.0">
+      <div class="slider-ticks">
+        <span>0.3x Drift</span>
+        <span>1.0x Cruise</span>
+        <span>4.0x Warp</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 중앙의 [지구 이륙 시작 (LAUNCH)] 오버레이 -->
+  <div id="launch-overlay">
+    <div class="launch-card">
+      <div class="launch-earth-icon">🌍</div>
+      <h1>AETHERIA</h1>
+      <p>
+        지구의 노을빛 대기층에서 시작하여 달, 태양계의 행성들, 그리고 신비로운 3색 오로라 성운까지 떠오르는 2D 힐링 우주 탐험 항해를 시작합니다.
+      </p>
+      <button class="launch-btn" id="launchBtn">지구 이륙 시작 (LAUNCH)</button>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==========================================
+    // 1. 캔버스 초기화 및 리사이즈
+    // ==========================================
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ==========================================
+    // 2. Web Audio API 기반 앰비언트 사운드스케이프
+    // ==========================================
+    class AmbientAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.windGain = null;
+        this.windFilter = null;
+        this.chimeGain = null;
+        this.isMuted = false;
+        this.started = false;
+        this.chimeTimer = null;
+        // Lydian / Pentatonic 편안한 힐링 주파수
+        this.chimeNotes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00];
+      }
+
+      init() {
+        if (this.started) return;
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+
+          this.masterGain = this.ctx.createGain();
+          this.masterGain.gain.setValueAtTime(0.45, this.ctx.currentTime);
+          this.masterGain.connect(this.ctx.destination);
+
+          // 1) 핑크/화이트 노이즈 기반 부드러운 우주 바람 (Filtered Space Ambient Noise)
+          const bufferSize = this.ctx.sampleRate * 2;
+          const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const output = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() * 2 - 1) * 0.15;
+          }
+
+          const whiteNoise = this.ctx.createBufferSource();
+          whiteNoise.buffer = noiseBuffer;
+          whiteNoise.loop = true;
+
+          this.windFilter = this.ctx.createBiquadFilter();
+          this.windFilter.type = 'lowpass';
+          this.windFilter.frequency.setValueAtTime(260, this.ctx.currentTime);
+
+          this.windGain = this.ctx.createGain();
+          this.windGain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+
+          whiteNoise.connect(this.windFilter);
+          this.windFilter.connect(this.windGain);
+          this.windGain.connect(this.masterGain);
+          whiteNoise.start();
+
+          // 2) 잔잔한 펜타토닉 차임벨 주기적 트리거
+          this.chimeGain = this.ctx.createGain();
+          this.chimeGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          this.chimeGain.connect(this.masterGain);
+
+          this.startChimeSequence();
+          this.started = true;
+        } catch (e) {
+          console.warn('Web Audio not initialized:', e);
+        }
+      }
+
+      startChimeSequence() {
+        const scheduleNext = () => {
+          if (!this.started || this.isMuted) {
+            this.chimeTimer = setTimeout(scheduleNext, 3000);
+            return;
+          }
+          this.playRandomChime();
+          const nextInterval = 2500 + Math.random() * 3500;
+          this.chimeTimer = setTimeout(scheduleNext, nextInterval);
+        };
+        scheduleNext();
+      }
+
+      playRandomChime(customFreq = null) {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        const freq = customFreq || this.chimeNotes[Math.floor(Math.random() * this.chimeNotes.length)];
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(0.06, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
+
+        osc.connect(gain);
+        gain.connect(this.chimeGain);
+        osc.start(now);
+        osc.stop(now + 4.0);
+      }
+
+      playLaunchBoom() {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 3.5);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.0);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 4.2);
+      }
+
+      setWindVelocity(intensity) {
+        if (!this.ctx || !this.windFilter) return;
+        const targetFreq = 200 + intensity * 600;
+        const targetGain = 0.05 + intensity * 0.12;
+        const now = this.ctx.currentTime;
+        this.windFilter.frequency.setTargetAtTime(targetFreq, now, 0.2);
+        this.windGain.gain.setTargetAtTime(targetGain, now, 0.2);
+      }
+
+      toggleMute() {
+        if (!this.started) {
+          this.init();
+          return false;
+        }
+        this.isMuted = !this.isMuted;
+        if (this.masterGain) {
+          this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.45, this.ctx.currentTime);
+        }
+        return this.isMuted;
+      }
+    }
+
+    const audio = new AmbientAudioEngine();
+
+    // ==========================================
+    // 3. 게임 월드 상태 및 천체(Planets) 정의
+    // ==========================================
+    const WORLD = {
+      isLaunched: false,
+      launchSequenceTime: 0,
+      speedMultiplier: 1.0,
+      uiVisible: true,
+      camera: { x: 0, y: 0, zoom: 1, targetZoom: 1 },
+      mouse: { x: width / 2, y: height / 2, isDown: false }
+    };
+
+    // 우주선 상태
+    const ship = {
+      x: 0,
+      y: 0, // 시작은 지구 표면 위 (y=0)
+      vx: 0,
+      vy: 0,
+      angle: -Math.PI / 2, // 위쪽 우주 방향
+      targetAngle: -Math.PI / 2,
+      isAnchored: false,
+      anchoredBody: null,
+      anchorDistance: 0,
+      anchorAngle: 0,
+      sailGlow: 0,
+      trailTimer: 0
+    };
+
+    // 맵 천체 라인업 (지구 -> 달 -> 수성 -> 금성 -> 태양 -> 화성 -> 목성 -> 토성 -> 천왕성 -> 해왕성 -> 창백한 푸른 점 -> 심우주 성운)
+    // y는 위로 갈수록 음수 (상승)
+    const CELESTIAL_BODIES = [
+      {
+        id: 'earth',
+        name: '푸른 요람, 지구 (Earth)',
+        y: 650, // 화면 하단 거대 구체
+        x: 0,
+        radius: 800,
+        gravityRadius: 1800,
+        mass: 1200,
+        color: '#38bdf8',
+        glowColor: 'rgba(56, 189, 248, 0.45)',
+        desc: '노을빛 대기가 감싸는 우리의 고향'
+      },
+      {
+        id: 'moon',
+        name: '달 (The Moon)',
+        y: -3000,
+        x: 450,
+        radius: 170,
+        gravityRadius: 600,
+        mass: 380,
+        color: '#e2e8f0',
+        glowColor: 'rgba(226, 232, 240, 0.3)',
+        desc: '수많은 밤을 지켜온 은빛의 파수꾼'
+      },
+      {
+        id: 'mercury',
+        name: '수성 (Mercury)',
+        y: -7000,
+        x: -400,
+        radius: 140,
+        gravityRadius: 520,
+        mass: 320,
+        color: '#cbd5e1',
+        glowColor: 'rgba(203, 213, 225, 0.3)',
+        desc: '태양의 열기를 정면으로 마주하는 암석의 별'
+      },
+      {
+        id: 'venus',
+        name: '금성 (Venus)',
+        y: -11500,
+        x: 520,
+        radius: 220,
+        gravityRadius: 750,
+        mass: 550,
+        color: '#fbbf24',
+        glowColor: 'rgba(251, 191, 36, 0.4)',
+        desc: '황금빛 짙은 구름으로 뒤덮인 새벽의 별'
+      },
+      {
+        id: 'sun',
+        name: '태양 (The Sun)',
+        y: -17000,
+        x: -800,
+        radius: 580,
+        gravityRadius: 1900,
+        mass: 1800,
+        color: '#f97316',
+        glowColor: 'rgba(249, 115, 22, 0.55)',
+        isSun: true,
+        desc: '태양계 모든 생명의 근원이 되는 장엄한 불꽃'
+      },
+      {
+        id: 'mars',
+        name: '화성 (Mars)',
+        y: -23000,
+        x: 380,
+        radius: 190,
+        gravityRadius: 680,
+        mass: 440,
+        color: '#ef4444',
+        glowColor: 'rgba(239, 68, 68, 0.35)',
+        desc: '붉은 산화철 사막과 고대 강의 흔적'
+      },
+      {
+        id: 'jupiter',
+        name: '목성 (Jupiter)',
+        y: -31000,
+        x: -450,
+        radius: 460,
+        gravityRadius: 1400,
+        mass: 1300,
+        color: '#d97706',
+        glowColor: 'rgba(217, 119, 6, 0.4)',
+        hasBands: true,
+        desc: '장엄한 대적점과 가스 소용돌이의 지배자'
+      },
+      {
+        id: 'saturn',
+        name: '토성 (Saturn)',
+        y: -40000,
+        x: 520,
+        radius: 380,
+        gravityRadius: 1250,
+        mass: 1100,
+        color: '#fde047',
+        glowColor: 'rgba(253, 224, 71, 0.35)',
+        hasRings: true,
+        desc: '수억 개의 영롱한 얼음 결정 고리를 두른 보석'
+      },
+      {
+        id: 'uranus',
+        name: '천왕성 (Uranus)',
+        y: -49000,
+        x: -360,
+        radius: 280,
+        gravityRadius: 900,
+        mass: 750,
+        color: '#2dd4bf',
+        glowColor: 'rgba(45, 212, 191, 0.4)',
+        verticalRing: true,
+        desc: '누워서 자전하는 신비로운 에메랄드 빙판 가스'
+      },
+      {
+        id: 'neptune',
+        name: '해왕성 (Neptune)',
+        y: -58000,
+        x: 420,
+        radius: 270,
+        gravityRadius: 880,
+        mass: 720,
+        color: '#3b82f6',
+        glowColor: 'rgba(59, 130, 246, 0.45)',
+        desc: '태양계 끝자락에서 휘몰아치는 심해의 푸른 폭풍'
+      },
+      {
+        id: 'pale_blue_dot',
+        name: '창백한 푸른 점 (Pale Blue Dot)',
+        y: -68000,
+        x: 0,
+        radius: 70,
+        gravityRadius: 400,
+        mass: 250,
+        color: '#93c5fd',
+        glowColor: 'rgba(147, 197, 253, 0.6)',
+        isPaleBlueDot: true,
+        desc: '광활한 우주 속에 부유하는 먼지 속의 한 점, 인류의 전부'
+      },
+      {
+        id: 'cosmic_nebula',
+        name: '장미 성운 & 오리온 회랑 (Deep Nebula)',
+        y: -80000,
+        x: 0,
+        radius: 900,
+        gravityRadius: 2400,
+        mass: 1600,
+        color: '#ec4899',
+        glowColor: 'rgba(236, 72, 153, 0.5)',
+        isNebulaCore: true,
+        desc: '아기 별들이 무한히 태어나는 심우주의 신비로운 빛'
+      }
+    ];
+
+    const MAX_ALTITUDE_Y = -85000;
+
+    // ==========================================
+    // 4. 화려한 800+ 별 파티클 & 3개 패럴랙스 레이어
+    // ==========================================
+    const STAR_COUNT = 920;
+    const starLayers = [
+      { speed: 0.04, stars: [] }, // 원경 (작고 은은함, 60%)
+      { speed: 0.18, stars: [] }, // 중경 (중간 크기, 30%)
+      { speed: 0.45, stars: [] }  // 근경 (크고 선명하며 반짝임, 10%)
+    ];
+
+    const starColorPalettes = [
+      '#ffffff', // 순백
+      '#93c5fd', // 사파이어 블루
+      '#fef08a', // 샴페인 골드
+      '#e9d5ff', // 오키드 바이올렛
+      '#fed7aa', // 앰버 피치
+      '#67e8f9'  // 시안
+    ];
+
+    function initStars() {
+      for (let i = 0; i < STAR_COUNT; i++) {
+        const layerIdx = i < STAR_COUNT * 0.6 ? 0 : (i < STAR_COUNT * 0.9 ? 1 : 2);
+        const layer = starLayers[layerIdx];
+        const baseRadius = layerIdx === 0 ? (0.5 + Math.random() * 0.9) : (layerIdx === 1 ? (1.0 + Math.random() * 1.5) : (1.8 + Math.random() * 2.2));
+
+        layer.stars.push({
+          x: (Math.random() - 0.5) * 6000,
+          y: -Math.random() * 95000 + 2000, // 지구 아래부터 심우주 너머까지
+          radius: baseRadius,
+          color: starColorPalettes[Math.floor(Math.random() * starColorPalettes.length)],
+          twinkleSpeed: 1.0 + Math.random() * 3.0,
+          twinklePhase: Math.random() * Math.PI * 2,
+          isBrightStar: Math.random() < 0.12 // 십자광채를 품은 큰 별
+        });
+      }
+    }
+    initStars();
+
+    // 궤적(Trail) 및 워프 스트릭 파티클
+    const trailParticles = [];
+    const warpStreaks = [];
+
+    function addTrail(x, y, color) {
+      if (trailParticles.length > 250) trailParticles.shift();
+      trailParticles.push({
+        x, y,
+        alpha: 0.8,
+        radius: 2.2 + Math.random() * 2.5,
+        decay: 0.015,
+        color: color || '#38bdf8'
+      });
+    }
+
+    // ==========================================
+    // 5. 미니맵 오버레이 동적 생성
+    // ==========================================
+    const minimapTrack = document.getElementById('minimapTrack');
+    const minimapShip = document.getElementById('minimapShip');
+
+    function setupMinimapNodes() {
+      CELESTIAL_BODIES.forEach(b => {
+        const node = document.createElement('div');
+        node.className = 'minimap-node';
+        // y: 650 (지구) ~ -80000 (성운)
+        const progress = Math.max(0, Math.min(1, (650 - b.y) / (650 - MAX_ALTITUDE_Y)));
+        const bottomPercent = progress * 100;
+        node.style.bottom = `${bottomPercent}%`;
+
+        node.innerHTML = `
+          <div class="minimap-node-dot" style="background:${b.color}"></div>
+          <div class="minimap-node-label">${b.name.split('(')[0].trim()}</div>
+        `;
+        minimapTrack.appendChild(node);
+      });
+    }
+    setupMinimapNodes();
+
+    function updateMinimap() {
+      const progress = Math.max(0, Math.min(1, (650 - ship.y) / (650 - MAX_ALTITUDE_Y)));
+      minimapShip.style.bottom = `${progress * 100}%`;
+    }
+
+    // ==========================================
+    // 6. 사용자 조작 및 물리 엔진
+    // ==========================================
+    window.addEventListener('mousemove', (e) => {
+      WORLD.mouse.x = e.clientX;
+      WORLD.mouse.y = e.clientY;
+      if (WORLD.mouse.isDown) {
+        audio.init();
+      }
+    });
+
+    window.addEventListener('mousedown', (e) => {
+      WORLD.mouse.isDown = true;
+      audio.init();
+    });
+
+    window.addEventListener('mouseup', () => {
+      WORLD.mouse.isDown = false;
+    });
+
+    // 키보드 조작
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        toggleAnchor();
+      } else if (e.key === 'h' || e.key === 'H' || e.key === 'ㅗ') {
+        toggleUI();
+      } else if (e.key === 'm' || e.key === 'M' || e.key === 'ㅡ') {
+        toggleMute();
+      } else if (e.key === 'r' || e.key === 'R' || e.key === 'ㄱ') {
+        resetToEarth();
+      }
+    });
+
+    function toggleAnchor() {
+      audio.init();
+      ship.isAnchored = !ship.isAnchored;
+
+      const btn = document.getElementById('anchorToggleBtn');
+      const btnText = document.getElementById('anchorBtnText');
+      const banner = document.getElementById('orbitBanner');
+      const bannerText = document.getElementById('orbitBannerText');
+
+      if (ship.isAnchored) {
+        btn.classList.add('active');
+        btnText.textContent = '중력 닻 올리기 [Space]';
+
+        // 근처 천체 검색
+        let nearest = null;
+        let minDist = Infinity;
+        CELESTIAL_BODIES.forEach(b => {
+          const d = Math.hypot(b.x - ship.x, b.y - ship.y);
+          if (d < b.gravityRadius * 1.6 && d < minDist) {
+            minDist = d;
+            nearest = b;
+          }
+        });
+
+        if (nearest) {
+          ship.anchoredBody = nearest;
+          ship.anchorDistance = minDist;
+          ship.anchorAngle = Math.atan2(ship.y - nearest.y, ship.x - nearest.x);
+          bannerText.textContent = `⚓ ${nearest.name} 궤도에 정박 중 — 우주의 숨결을 감상하세요`;
+        } else {
+          ship.anchoredBody = null;
+          bannerText.textContent = `⚓ 심우주 공간에 정박 중 — 고요한 우주 풍경을 관람합니다`;
+        }
+
+        banner.classList.add('show');
+        audio.playRandomChime(220); // 안정감 있는 저음 차임
+      } else {
+        btn.classList.remove('active');
+        btnText.textContent = '중력 닻 내리기 [Space]';
+        banner.classList.remove('show');
+        ship.anchoredBody = null;
+
+        // 닻을 올릴 때 돛 방향으로 은은한 출발 추력
+        const launchBoost = 2.5 * WORLD.speedMultiplier;
+        ship.vx += Math.cos(ship.angle) * launchBoost;
+        ship.vy += Math.sin(ship.angle) * launchBoost;
+      }
+    }
+
+    function toggleUI() {
+      WORLD.uiVisible = !WORLD.uiVisible;
+      const uiLayer = document.getElementById('ui-layer');
+      if (WORLD.uiVisible) {
+        uiLayer.classList.remove('hide-ui');
+      } else {
+        uiLayer.classList.add('hide-ui');
+      }
+    }
+
+    function toggleMute() {
+      const isMuted = audio.toggleMute();
+      const btn = document.getElementById('audioToggleBtn');
+      btn.style.opacity = isMuted ? '0.4' : '1.0';
+    }
+
+    function resetToEarth() {
+      ship.x = 0;
+      ship.y = -120; // 지구 대기권 바로 위
+      ship.vx = 0;
+      ship.vy = -2.0;
+      ship.isAnchored = false;
+      document.getElementById('anchorToggleBtn').classList.remove('active');
+      document.getElementById('anchorBtnText').textContent = '중력 닻 내리기 [Space]';
+      document.getElementById('orbitBanner').classList.remove('show');
+    }
+
+    // UI 버튼 이벤트 바인딩
+    document.getElementById('launchBtn').addEventListener('click', () => {
+      audio.init();
+      audio.playLaunchBoom();
+      WORLD.isLaunched = true;
+      document.getElementById('launch-overlay').classList.add('launched');
+      // 초기 이륙 추진력
+      ship.vy = -3.8;
+      ship.vx = 0;
+    });
+
+    document.getElementById('anchorToggleBtn').addEventListener('click', toggleAnchor);
+    document.getElementById('audioToggleBtn').addEventListener('click', toggleMute);
+    document.getElementById('resetBtn').addEventListener('click', resetToEarth);
+    document.getElementById('hideUiBtn').addEventListener('click', toggleUI);
+
+    const speedSlider = document.getElementById('speedSlider');
+    const warpModeTag = document.getElementById('warpModeTag');
+    speedSlider.addEventListener('input', (e) => {
+      WORLD.speedMultiplier = parseFloat(e.target.value);
+      let label = `${WORLD.speedMultiplier.toFixed(1)}x `;
+      if (WORLD.speedMultiplier <= 0.6) label += '(Chill Drift)';
+      else if (WORLD.speedMultiplier <= 1.4) label += '(Cruise)';
+      else if (WORLD.speedMultiplier <= 2.8) label += '(Super Cruise)';
+      else label += '(Hyper Warp)';
+      warpModeTag.textContent = label;
+    });
+
+    // ==========================================
+    // 7. 물리 시뮬레이션 로직
+    // ==========================================
+    let lastTime = performance.now();
+
+    function updatePhysics(dt) {
+      if (!WORLD.isLaunched) {
+        // 이륙 전: 지구 지표면에 얌전히 머무름
+        ship.x = 0;
+        ship.y = -100;
+        ship.angle = -Math.PI / 2;
+        return;
+      }
+
+      const mult = WORLD.speedMultiplier;
+
+      // 1) 마우스 방향 추적 및 부드러운 회전 (Slerp)
+      const screenShipX = width / 2 + (ship.x - WORLD.camera.x) * WORLD.camera.zoom;
+      const screenShipY = height / 2 + (ship.y - WORLD.camera.y) * WORLD.camera.zoom;
+      const dxMouse = WORLD.mouse.x - screenShipX;
+      const dyMouse = WORLD.mouse.y - screenShipY;
+      ship.targetAngle = Math.atan2(dyMouse, dxMouse);
+
+      let diffAngle = (ship.targetAngle - ship.angle) % (Math.PI * 2);
+      if (diffAngle < -Math.PI) diffAngle += Math.PI * 2;
+      if (diffAngle > Math.PI) diffAngle -= Math.PI * 2;
+      ship.angle += diffAngle * Math.min(1, 6.0 * dt * mult);
+
+      // 2) 중력 닻 정박 상태 처리
+      if (ship.isAnchored) {
+        if (ship.anchoredBody) {
+          ship.anchorAngle += 0.05 * dt * mult;
+          const targetX = ship.anchoredBody.x + Math.cos(ship.anchorAngle) * ship.anchorDistance;
+          const targetY = ship.anchoredBody.y + Math.sin(ship.anchorAngle) * ship.anchorDistance;
+          ship.x += (targetX - ship.x) * 4.0 * dt;
+          ship.y += (targetY - ship.y) * 4.0 * dt;
+          ship.vx = 0;
+          ship.vy = 0;
+        } else {
+          ship.vx *= Math.pow(0.05, dt * mult);
+          ship.vy *= Math.pow(0.05, dt * mult);
+          ship.x += ship.vx;
+          ship.y += ship.vy;
+        }
+        return;
+      }
+
+      // 3) 기본 자동 상승력 (위쪽 음수 y 방향으로 끊임없이 떠오름)
+      const baseAscend = -0.55 * mult;
+      ship.vy += baseAscend * dt;
+
+      // 4) 마우스 방향 추력 (반중력 돛이 에테르 바람을 타고 가속)
+      const distMouse = Math.hypot(dxMouse, dyMouse);
+      const thrustPower = (1.4 + Math.min(distMouse / 350, 1.2)) * mult;
+      ship.vx += Math.cos(ship.angle) * thrustPower * dt;
+      ship.vy += Math.sin(ship.angle) * thrustPower * dt;
+
+      audio.setWindVelocity(Math.min(1.5, Math.hypot(ship.vx, ship.vy) / 6));
+
+      // 5) 천체 인력(Gravity) + 돛의 반중력(Anti-gravity cushion) + 궤도 슬링샷
+      CELESTIAL_BODIES.forEach(body => {
+        const dx = body.x - ship.x;
+        const dy = body.y - ship.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < body.gravityRadius) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          // 부드러운 소프트 코어 인력
+          const gravityMag = (body.mass / (dist + 150)) * 0.95 * mult;
+          const gx = nx * gravityMag;
+          const gy = ny * gravityMag;
+
+          // 반중력 쿠션 (표면에 가까워지면 충돌하지 않고 궤도로 감싸 안음)
+          const surfaceDist = dist - body.radius;
+          let repulsion = 0;
+          if (surfaceDist < body.radius * 0.9) {
+            const factor = 1 - Math.max(0, surfaceDist / (body.radius * 0.9));
+            repulsion = factor * (gravityMag + 3.2 * mult);
+          }
+
+          // 접선 가속 (오비탈 글라이딩 / 슬링샷 궤적 유영)
+          const cross = nx * Math.sin(ship.angle) - ny * Math.cos(ship.angle);
+          const tangentX = -ny * cross * 1.5 * mult;
+          const tangentY = nx * cross * 1.5 * mult;
+
+          ship.vx += (gx - nx * repulsion + tangentX) * dt;
+          ship.vy += (gy - ny * repulsion + tangentY) * dt;
+
+          // 행성 근접 시 별빛 트레일 방출
+          if (Math.random() < 0.25) {
+            addTrail(ship.x + (Math.random() - 0.5) * 15, ship.y + (Math.random() - 0.5) * 15, body.color);
+          }
+        }
+      });
+
+      // 6) 유영 감쇠 및 최대 속도 제한
+      const damp = Math.pow(0.965, dt * 60 * mult);
+      ship.vx *= damp;
+      ship.vy *= damp;
+
+      const currentSpeed = Math.hypot(ship.vx, ship.vy);
+      const maxSpd = 8.5 * mult;
+      if (currentSpeed > maxSpd) {
+        ship.vx = (ship.vx / currentSpeed) * maxSpd;
+        ship.vy = (ship.vy / currentSpeed) * maxSpd;
+      }
+
+      ship.x += ship.vx;
+      ship.y += ship.vy;
+
+      // 7) 꼬리 궤적 파티클
+      ship.trailTimer += dt;
+      if (ship.trailTimer > 0.04) {
+        ship.trailTimer = 0;
+        const tailX = ship.x - Math.cos(ship.angle) * 16;
+        const tailY = ship.y - Math.sin(ship.angle) * 16;
+        addTrail(tailX, tailY, mult > 2.0 ? '#c084fc' : '#38bdf8');
+      }
+
+      // 8) 워프 속도(>2.2x) 시 스트릭 잔상 생성
+      if (mult > 2.2 && Math.random() < 0.35) {
+        warpStreaks.push({
+          x: (Math.random() - 0.5) * width,
+          y: (Math.random() - 0.5) * height,
+          length: 40 + mult * 25,
+          alpha: 0.9,
+          decay: 0.045
+        });
+      }
+    }
+
+    // ==========================================
+    // 8. 카메라 추적 시스템
+    // ==========================================
+    function updateCamera(dt) {
+      const mult = WORLD.speedMultiplier;
+      const targetX = ship.x + ship.vx * 12;
+      const targetY = ship.y + ship.vy * 12;
+
+      WORLD.camera.x += (targetX - WORLD.camera.x) * Math.min(1, 4.0 * dt * mult);
+      WORLD.camera.y += (targetY - WORLD.camera.y) * Math.min(1, 4.0 * dt * mult);
+
+      WORLD.camera.targetZoom = ship.isAnchored ? 0.7 : (mult > 2.5 ? 0.85 : 1.0);
+      WORLD.camera.zoom += (WORLD.camera.targetZoom - WORLD.camera.zoom) * Math.min(1, 2.5 * dt);
+    }
+
+    // ==========================================
+    // 9. 렌더링 파이프라인
+    // ==========================================
+
+    // 1) 고도별 우주 배경색 및 3색 오로라 성운 레이어 계산
+    function drawSpaceBackground() {
+      // y: 0(지구 표면) ~ -80000(심우주 성운)
+      const altProgress = Math.max(0, Math.min(1, -ship.y / 70000));
+
+      // 하늘색 -> 짙은 남색 -> 오묘한 보랏빛 -> 칠흑 같은 심우주
+      let topCol, botCol;
+      if (ship.y > -2500) {
+        // 대기권 (청록-노을빛)
+        topCol = '#051329';
+        botCol = '#0284c7';
+      } else if (ship.y > -15000) {
+        // 지구-달-내행성 궤도
+        topCol = '#030712';
+        botCol = '#0f172a';
+      } else if (ship.y > -45000) {
+        // 목성/토성/외행성
+        topCol = '#090514';
+        botCol = '#1a0b2e';
+      } else {
+        // 심우주 성운 지대
+        topCol = '#030206';
+        botCol = '#12051f';
+      }
+
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+      bgGrad.addColorStop(0, topCol);
+      bgGrad.addColorStop(1, botCol);
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // 몽환적인 3색 오로라 성운(Nebulae) 레이어 블렌딩 (고도 8000 이상부터 서서히 나타남)
+      if (ship.y < -5000) {
+        const nebulaIntensity = Math.min(0.65, (-ship.y - 5000) / 40000);
+        const time = performance.now() * 0.0004;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+
+        // 3색 오로라 성운 (시안, 마젠타, 바이올렛)
+        const nebulaCenters = [
+          { x: width * 0.3 + Math.sin(time) * 120, y: height * 0.35 + Math.cos(time * 0.8) * 80, r: 480, col: 'rgba(56, 189, 248, ' },
+          { x: width * 0.75 + Math.cos(time * 0.7) * 140, y: height * 0.45 + Math.sin(time * 0.9) * 100, r: 560, col: 'rgba(236, 72, 153, ' },
+          { x: width * 0.5 + Math.sin(time * 0.5) * 100, y: height * 0.7 + Math.cos(time * 0.6) * 90, r: 520, col: 'rgba(168, 85, 247, ' }
+        ];
+
+        nebulaCenters.forEach(n => {
+          const g = ctx.createRadialGradient(n.x, n.y, 10, n.x, n.y, n.r);
+          g.addColorStop(0, n.col + (0.28 * nebulaIntensity) + ')');
+          g.addColorStop(0.5, n.col + (0.12 * nebulaIntensity) + ')');
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, width, height);
+        });
+
+        ctx.restore();
+      }
+    }
+
+    // 2) 800+ 다채로운 별 파티클 (3개 Parallax Layer) 렌더링
+    function drawStars() {
+      const time = performance.now() * 0.001;
+      const camX = WORLD.camera.x;
+      const camY = WORLD.camera.y;
+      const zoom = WORLD.camera.zoom;
+      const isWarp = WORLD.speedMultiplier > 2.0;
+
+      starLayers.forEach(layer => {
+        layer.stars.forEach(star => {
+          // 패럴랙스 화면 좌표
+          const screenX = (star.x - camX * layer.speed) * zoom + width / 2;
+          const screenY = (star.y - camY * layer.speed) * zoom + height / 2;
+
+          // 화면 래핑(Wrap)
+          const wx = ((screenX % width) + width) % width;
+          const wy = ((screenY % height) + height) % height;
+
+          // 깜빡임
+          const twinkle = 0.4 + 0.6 * Math.sin(time * star.twinkleSpeed + star.twinklePhase);
+          const alpha = Math.min(1, Math.max(0.15, twinkle));
+
+          ctx.save();
+          ctx.beginPath();
+
+          if (isWarp) {
+            // 하이퍼 워프 시 별빛이 이동 반대 방향으로 잔상 선을 그림
+            const streakLen = 12 * WORLD.speedMultiplier * layer.speed;
+            const moveAngle = Math.atan2(ship.vy, ship.vx);
+            ctx.moveTo(wx, wy);
+            ctx.lineTo(wx - Math.cos(moveAngle) * streakLen, wy - Math.sin(moveAngle) * streakLen);
+            ctx.strokeStyle = star.color;
+            ctx.lineWidth = star.radius * zoom;
+            ctx.globalAlpha = alpha;
+            ctx.stroke();
+          } else {
+            ctx.arc(wx, wy, star.radius * zoom, 0, Math.PI * 2);
+            ctx.fillStyle = star.color;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+
+            // 밝은 큰 별 주변 십자 광채
+            if (star.isBrightStar && star.radius > 1.8) {
+              ctx.strokeStyle = star.color;
+              ctx.lineWidth = 0.8;
+              ctx.globalAlpha = alpha * 0.4;
+              ctx.beginPath();
+              ctx.moveTo(wx - 8 * zoom, wy); ctx.lineTo(wx + 8 * zoom, wy);
+              ctx.moveTo(wx, wy - 8 * zoom); ctx.lineTo(wx, wy + 8 * zoom);
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+        });
+      });
+
+      // 워프 스트릭 잔상
+      for (let i = warpStreaks.length - 1; i >= 0; i--) {
+        const s = warpStreaks[i];
+        s.alpha -= s.decay;
+        if (s.alpha <= 0) {
+          warpStreaks.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.beginPath();
+        const moveAngle = Math.atan2(ship.vy, ship.vx);
+        const sx = width / 2 + s.x;
+        const sy = height / 2 + s.y;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx - Math.cos(moveAngle) * s.length, sy - Math.sin(moveAngle) * s.length);
+        ctx.strokeStyle = 'rgba(192, 132, 252, ' + s.alpha + ')';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // 3) 천체 렌더링 (지구 노을 대기층, 달, 태양계 주요 행성들, 성운)
+    function drawCelestialBodies() {
+      const camX = WORLD.camera.x;
+      const camY = WORLD.camera.y;
+      const zoom = WORLD.camera.zoom;
+      const time = performance.now() * 0.001;
+
+      CELESTIAL_BODIES.forEach(body => {
+        const screenX = (body.x - camX) * zoom + width / 2;
+        const screenY = (body.y - camY) * zoom + height / 2;
+        const r = body.radius * zoom;
+        const gravR = body.gravityRadius * zoom;
+
+        // 화면 밖 컬링
+        if (screenX + gravR < -100 || screenX - gravR > width + 100 ||
+            screenY + gravR < -100 || screenY - gravR > height + 100) {
+          return;
+        }
+
+        ctx.save();
+        ctx.translate(screenX, screenY);
+
+        // a. 인력장 점선 가이드 원
+        ctx.beginPath();
+        ctx.arc(0, 0, gravR, 0, Math.PI * 2);
+        ctx.strokeStyle = body.glowColor;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([6, 10]);
+        ctx.lineDashOffset = -time * 6;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // b. 천체 대기 산란광 (Atmosphere Glow)
+        const halo = ctx.createRadialGradient(0, 0, r * 0.75, 0, 0, r * 1.55);
+        halo.addColorStop(0, body.glowColor);
+        halo.addColorStop(0.7, body.glowColor.replace('0.4', '0.1').replace('0.5', '0.12'));
+        halo.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.55, 0, Math.PI * 2);
+        ctx.fillStyle = halo;
+        ctx.fill();
+
+        // c. 지구 하단 노을빛 대기층 (화면 하단 거대 구체)
+        if (body.id === 'earth') {
+          // 노을빛 대기층 (Sunset Glow Layer)
+          const sunsetGlow = ctx.createRadialGradient(0, -r * 0.85, r * 0.1, 0, 0, r * 1.08);
+          sunsetGlow.addColorStop(0, 'rgba(251, 146, 60, 0.7)'); // 따스한 오렌지 석양
+          sunsetGlow.addColorStop(0.3, 'rgba(56, 189, 248, 0.5)'); // 에메랄드 대기 산란광
+          sunsetGlow.addColorStop(1, 'rgba(3, 7, 18, 0)');
+          ctx.beginPath();
+          ctx.arc(0, 0, r * 1.08, 0, Math.PI * 2);
+          ctx.fillStyle = sunsetGlow;
+          ctx.fill();
+        }
+
+        // d. 천체 본체 구체 렌더링
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+
+        const sphereGrad = ctx.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.08, 0, 0, r);
+        sphereGrad.addColorStop(0, '#ffffff');
+        sphereGrad.addColorStop(0.25, body.color);
+        sphereGrad.addColorStop(0.85, darken(body.color, 0.35));
+        sphereGrad.addColorStop(1, '#02040a');
+        ctx.fillStyle = sphereGrad;
+        ctx.fill();
+
+        // e. 천체별 고유 비주얼 디테일
+        if (body.hasBands) {
+          // 목성 줄무늬 & 대적점
+          ctx.save();
+          ctx.clip();
+          ctx.fillStyle = 'rgba(180, 83, 9, 0.4)';
+          for (let b = -4; b <= 4; b++) {
+            ctx.fillRect(-r, b * (r * 0.18), r * 2, r * 0.09);
+          }
+          // 대적점
+          ctx.beginPath();
+          ctx.ellipse(r * 0.35, r * 0.25, r * 0.2, r * 0.12, 0, 0, Math.PI * 2);
+          ctx.fillStyle = '#b91c1c';
+          ctx.fill();
+          ctx.restore();
+        } else if (body.hasRings) {
+          // 토성 고리
+          ctx.save();
+          ctx.rotate(0.38);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 2.3, r * 0.55, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(253, 224, 71, 0.45)';
+          ctx.lineWidth = 18 * zoom;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.9, r * 0.45, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+          ctx.lineWidth = 2.5 * zoom;
+          ctx.stroke();
+          ctx.restore();
+        } else if (body.verticalRing) {
+          // 천왕성 수직 고리
+          ctx.save();
+          ctx.rotate(1.4);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.8, r * 0.3, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(45, 212, 191, 0.5)';
+          ctx.lineWidth = 6 * zoom;
+          ctx.stroke();
+          ctx.restore();
+        } else if (body.isSun) {
+          // 태양 이글거리는 코로나 펄스
+          ctx.save();
+          const coronaR = r * (1.25 + Math.sin(time * 2.0) * 0.08);
+          const sunGlow = ctx.createRadialGradient(0, 0, r * 0.8, 0, 0, coronaR);
+          sunGlow.addColorStop(0, 'rgba(254, 240, 138, 0.8)');
+          sunGlow.addColorStop(0.5, 'rgba(249, 115, 22, 0.4)');
+          sunGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+          ctx.beginPath();
+          ctx.arc(0, 0, coronaR, 0, Math.PI * 2);
+          ctx.fillStyle = sunGlow;
+          ctx.fill();
+          ctx.restore();
+        } else if (body.isPaleBlueDot) {
+          // 창백한 푸른 점 태양빛 광선 기둥 연출
+          ctx.save();
+          const beamGrad = ctx.createLinearGradient(-r * 3, -r * 5, r * 3, r * 5);
+          beamGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          beamGrad.addColorStop(0.5, 'rgba(147, 197, 253, 0.35)');
+          beamGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = beamGrad;
+          ctx.fillRect(-12 * zoom, -r * 6, 24 * zoom, r * 12);
+          ctx.restore();
+        }
+
+        // f. 천체 텍스트 라벨 (Cinzel / Pretendard)
+        ctx.textAlign = 'center';
+        ctx.font = `700 ${Math.max(12, 13 * zoom)}px 'Cinzel', serif`;
+        ctx.fillStyle = '#f8fafc';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(body.name, 0, r + 26 * zoom);
+
+        ctx.font = `400 ${Math.max(10, 11 * zoom)}px 'Pretendard', sans-serif`;
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(body.desc, 0, r + 44 * zoom);
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+      });
+    }
+
+    function darken(hex, factor) {
+      if (!hex.startsWith('#')) return hex;
+      const c = parseInt(hex.slice(1), 16);
+      const r = Math.round(((c >> 16) & 255) * factor);
+      const g = Math.round(((c >> 8) & 255) * factor);
+      const b = Math.round((c & 255) * factor);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // 4) 트레일 파티클 렌더링
+    function drawTrailParticles() {
+      const camX = WORLD.camera.x;
+      const camY = WORLD.camera.y;
+      const zoom = WORLD.camera.zoom;
+
+      for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const p = trailParticles[i];
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+          trailParticles.splice(i, 1);
+          continue;
+        }
+        const sx = (p.x - camX) * zoom + width / 2;
+        const sy = (p.y - camY) * zoom + height / 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.radius * zoom, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // 5) 우주선 & 반중력 돛 (Anti-gravity Sail) 렌더링
+    function drawShip() {
+      const camX = WORLD.camera.x;
+      const camY = WORLD.camera.y;
+      const zoom = WORLD.camera.zoom;
+
+      const screenX = (ship.x - camX) * zoom + width / 2;
+      const screenY = (ship.y - camY) * zoom + height / 2;
+
+      ctx.save();
+      ctx.translate(screenX, screenY);
+      ctx.scale(zoom, zoom);
+
+      // a. 중력 닻 정박 시 홀로그램 에너지 오라
+      if (ship.isAnchored) {
+        ship.sailGlow += 0.05;
+        const auraR = 36 + Math.sin(ship.sailGlow) * 4;
+        const aura = ctx.createRadialGradient(0, 0, 5, 0, 0, auraR);
+        aura.addColorStop(0, 'rgba(56, 189, 248, 0.6)');
+        aura.addColorStop(0.7, 'rgba(129, 140, 248, 0.2)');
+        aura.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.beginPath();
+        ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+        ctx.fillStyle = aura;
+        ctx.fill();
+      }
+
+      // b. 반중력 돛 (Anti-gravity Sail)
+      ctx.save();
+      ctx.rotate(ship.angle);
+
+      // 마스트
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-16, 0);
+      ctx.lineTo(24, 0);
+      ctx.stroke();
+
+      // 돛 가로대
+      ctx.beginPath();
+      ctx.moveTo(10, -25);
+      ctx.lineTo(10, 25);
+      ctx.stroke();
+
+      // 반투명 에테르 돛 날개
+      const sailGrad = ctx.createLinearGradient(10, 0, -12, 0);
+      sailGrad.addColorStop(0, 'rgba(56, 189, 248, 0.8)');
+      sailGrad.addColorStop(0.6, 'rgba(129, 140, 248, 0.5)');
+      sailGrad.addColorStop(1, 'rgba(192, 132, 252, 0.15)');
+
+      ctx.beginPath();
+      ctx.moveTo(10, -25);
+      ctx.quadraticCurveTo(-14, 0, 10, 25);
+      ctx.closePath();
+      ctx.fillStyle = sailGrad;
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // c. 유선형 선체 (동체)
+      ctx.save();
+      ctx.rotate(ship.angle + Math.PI / 2);
+
+      ctx.beginPath();
+      ctx.moveTo(0, -16);
+      ctx.lineTo(8, 12);
+      ctx.lineTo(0, 8);
+      ctx.lineTo(-8, 12);
+      ctx.closePath();
+
+      const hullGrad = ctx.createLinearGradient(0, -16, 0, 12);
+      hullGrad.addColorStop(0, '#ffffff');
+      hullGrad.addColorStop(0.5, '#cbd5e1');
+      hullGrad.addColorStop(1, '#475569');
+      ctx.fillStyle = hullGrad;
+      ctx.fill();
+
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 돔 조종석
+      ctx.beginPath();
+      ctx.arc(0, -4, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+
+      ctx.restore();
+    }
+
+    // 6) HUD 메트릭스 및 구역 갱신
+    const altDisplay = document.getElementById('altDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const zoneTag = document.getElementById('zoneTag');
+
+    let hudTimer = 0;
+    function updateHUD(dt) {
+      hudTimer += dt;
+      if (hudTimer > 0.08) {
+        hudTimer = 0;
+        const currentAltKm = Math.max(0, Math.floor(-ship.y / 1.2));
+        altDisplay.textContent = currentAltKm.toLocaleString();
+
+        const spdKn = Math.round(Math.hypot(ship.vx, ship.vy) * 25 * WORLD.speedMultiplier);
+        speedDisplay.textContent = spdKn;
+
+        // 현재 구역 탐색
+        let currentZone = '지구 대기권 구역 (Troposphere)';
+        for (let i = CELESTIAL_BODIES.length - 1; i >= 0; i--) {
+          if (ship.y <= CELESTIAL_BODIES[i].y + 1200) {
+            currentZone = CELESTIAL_BODIES[i].name;
+            break;
+          }
+        }
+        if (zoneTag.textContent !== currentZone) {
+          zoneTag.textContent = currentZone;
+        }
+
+        updateMinimap();
+      }
+    }
+
+    // ==========================================
+    // 10. 메인 게임 루프
+    // ==========================================
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      updatePhysics(dt);
+      updateCamera(dt);
+      updateHUD(dt);
+
+      ctx.clearRect(0, 0, width, height);
+      drawSpaceBackground();
+      drawStars();
+      drawCelestialBodies();
+      drawTrailParticles();
+      drawShip();
+
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+  })();
+  </script>
+</body>
+</html>
