@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>강릉영동대 AI·DX융합계열 | 2026 바이브 코딩 명예의 전당 (Showcase)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            gyu: {
+              gold: '#ffd700',
+              accent: '#38bdf8',
+              card: '#16192b',
+              border: 'rgba(255, 255, 255, 0.08)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1545 0%, #0d0b18 50%, #05040a 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      font-family: 'Pretendard', sans-serif;
+    }
+    .glass-card {
+      background: rgba(22, 25, 43, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 16px 36px -10px rgba(56, 189, 248, 0.15);
+    }
+    .highlight-card {
+      background: linear-gradient(145deg, rgba(35, 22, 10, 0.8), rgba(22, 25, 43, 0.8));
+      border: 2px solid #ffd700;
+      box-shadow: 0 10px 30px -5px rgba(255, 215, 0, 0.2);
+    }
+    .highlight-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 45px -5px rgba(255, 215, 0, 0.35);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-sky-500 selection:text-white pb-20">
+
+  <!-- ========================================================
+       상단 헤더 & 히어로 배너
+       ======================================================== -->
+  <header class="relative pt-12 pb-10 px-4 text-center overflow-hidden border-b border-white/5">
+    <!-- 배경 은은한 네온 블러 -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-purple-600/20 blur-[120px] pointer-events-none rounded-full"></div>
+
+    <div class="relative max-w-4xl mx-auto">
+      <!-- 대학 / 학과 뱃지 -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/10 text-sky-300 text-xs font-semibold mb-5 tracking-wide">
+        <span>🏛️ 강릉영동대학교</span>
+        <span class="text-white/30">•</span>
+        <span>AI·DX융합계열 신입생 특강</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
+        2026 AI 바이브 코딩 <br class="sm:hidden">
+        <span class="bg-gradient-to-r from-sky-400 via-purple-300 to-amber-300 bg-clip-text text-transparent">
+          명예의 전당 (Showcase)
+        </span>
+      </h1>
+
+      <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed font-normal">
+        문법 암기 없이, 오직 <strong class="text-sky-300 font-semibold">그림판 낙서</strong>와 
+        <strong class="text-amber-300 font-semibold">AI 역인터뷰</strong>로 기획하여 
+        단 2시간 만에 완성하고 GitHub Pages로 배포된 100% 자율 창작 웹 애플리케이션 컬렉션입니다.
+      </p>
+
+      <!-- 4대 성과 메트릭스 바 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto mt-8">
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
+          <div class="text-xs text-slate-400 font-medium">실습 소요 시간</div>
+          <div class="text-xl sm:text-2xl font-black text-white mt-0.5">2시간 연강</div>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
+          <div class="text-xs text-slate-400 font-medium">유료 결제 비용</div>
+          <div class="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">0원 (Free)</div>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
+          <div class="text-xs text-slate-400 font-medium">실습 완주·배포율</div>
+          <div class="text-xl sm:text-2xl font-black text-amber-300 mt-0.5">100% (8/8인)</div>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
+          <div class="text-xs text-slate-400 font-medium">사용 AI 도구</div>
+          <div class="text-xl sm:text-2xl font-black text-sky-400 mt-0.5">Antigravity</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================
+       컨트롤 바 (카테고리 필터 + 실시간 검색)
+       ======================================================== -->
+  <section class="max-w-6xl mx-auto px-4 mt-8">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-2 rounded-2xl bg-white/5 border border-white/10">
+      
+      <!-- 카테고리 탭 -->
+      <div class="flex flex-wrap items-center gap-1.5 w-full sm:w-auto" id="filter-tabs">
+        <button class="filter-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all bg-sky-500 text-white shadow-lg shadow-sky-500/20" data-cat="all">
+          전체 (9)
+        </button>
+        <button class="filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition-all hover:bg-white/5" data-cat="game">
+          게임 & 시뮬레이션
+        </button>
+        <button class="filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition-all hover:bg-white/5" data-cat="utility">
+          유틸리티 & 생산성
+        </button>
+        <button class="filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition-all hover:bg-white/5" data-cat="data">
+          데이터 분석
+        </button>
+      </div>
+
+      <!-- 실시간 검색창 -->
+      <div class="relative w-full sm:w-72">
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="학번, 제목, 키워드 검색..." 
+          class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
+        >
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       프로젝트 카드 그리드 (9개 항목)
+       ======================================================== -->
+  <main class="max-w-6xl mx-auto px-4 mt-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid">
+
+      <!-- ====================================================
+           [CARD 1] 20260001: 교수자 표준 예제 (GOLD HIGHLIGHT)
+           ==================================================== -->
+      <article class="highlight-card rounded-2xl p-6 flex flex-col justify-between relative group" data-category="game utility" data-search="20260001 슬롯머신 메뉴 추천 결제자 밥값 룰렛">
+        <div>
+          <!-- 상단 뱃지 라인 -->
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-400 text-slate-950 uppercase tracking-wider shadow-sm">
+              ⭐ 교수자 표준 예제
+            </span>
+            <span class="text-xs font-mono font-semibold text-amber-300">#20260001</span>
+          </div>
+
+          <!-- 아이콘 & 제목 -->
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/10">🎰</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-amber-300 transition-colors leading-snug">
+                오늘 뭐 먹을지 뽑기 & 밥값 쏠 사람
+              </h2>
+              <p class="text-xs text-amber-200/70 mt-0.5">슬롯머신 메뉴 추천 + 4열 결제자 추첨기</p>
+            </div>
+          </div>
+
+          <!-- 설명글 -->
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            한식·중식·일식 카테고리와 조리 특성, 메뉴를 논리적으로 매칭하는 3열 슬롯머신에 
+            <strong class="text-amber-300 font-semibold">4번째 릴(오늘 점심 쏠 사람)</strong>을 
+            자연어로 추가 확장한 표준 레퍼런스 모델입니다. Web Audio 신디사이저와 폭죽 효과 내장!
+          </p>
+
+          <!-- 기술 태그 -->
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/10 text-amber-200">Web Audio API</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/10 text-amber-200">물리 레버 모션</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/10 text-amber-200">Canvas 폭죽</span>
+          </div>
+        </div>
+
+        <!-- 액션 버튼 -->
+        <div class="pt-6 mt-6 border-t border-amber-500/20 flex items-center justify-between">
+          <span class="text-xs text-amber-200/60 font-mono">68.7 KB • Single HTML</span>
+          <a href="./20260001/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>체험하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 2] 20260592: 검 키우기
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="game" data-search="20260592 검 키우기 방치형 강화 시뮬레이션 무기">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              방치형 시뮬레이션
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260592</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">⚔️</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                검 키우기
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">방치형 강화 시뮬레이션</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            클릭과 자동 수급을 통해 골드를 모으고, 단계별 확률에 도전하여 전설의 무기를 제련하는 방치형 육성 시뮬레이터입니다. 등급별 색상 변화와 타격 이펙트가 돋보입니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">확률 테이블</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">인벤토리 시스템</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">강화 애니메이션</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">81.2 KB</span>
+          <a href="./20260592/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 3] 20260594: 얼음 왕국 낚시 게임
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="game" data-search="20260594 얼음 왕국 낚시 게임 Ice Fishing Master 아케이드 손맛">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              아케이드 게임
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260594</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">🎣</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                얼음 왕국 낚시 게임
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Ice Fishing Master</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            얼음 구멍에 낚싯대를 드리우고 입질 타이밍에 맞춰 물고기를 낚아 올리는 손맛 게임입니다. 100KB가 넘는 방대한 볼륨 속에 희귀 어종 수집 도감과 사운드가 완벽히 구현되었습니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">어종 도감</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">입질 타이밍 액션</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">105 KB 대형작</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">105.4 KB</span>
+          <a href="./20260594/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 4] 20260596: AETHERIA (SF 항해)
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="game" data-search="20260596 AETHERIA 에테리아 대지에서 심우주로의 항해 SF 우주 탐사">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              SF 탐사 시뮬레이션
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260596</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">🚀</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                AETHERIA
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">대지에서 심우주로의 항해</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            행성 지표면을 떠나 미지의 성간 우주로 나아가는 감성적인 SF 인터랙티브 탐사 콘솔입니다. 몰입감 높은 비주얼과 사운드스케이프로 독창적인 세계관을 그려냈습니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">SF 스토리텔링</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">성간 항해 콘솔</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">감성 비주얼</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">55.4 KB</span>
+          <a href="./20260596/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 5] 20260601: EMBER — 무기 강화 대장간
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="game" data-search="20260601 EMBER 엠버 무기 강화 대장간 대장장이 불꽃">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/30">
+              판타지 대장간
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260601</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">🔨</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                EMBER: 무기 강화 대장간
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">당신의 전설을 벼려내세요</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            모루 위의 불꽃과 망치질 타격감을 중심으로 장비를 담금질하고 강화 확률에 도전하는 다크 판타지 게임입니다. 깔끔한 코드 구조와 감각적인 분위기가 돋보입니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">대장간 연출</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">스탯 성장</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">확률 도전</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">24.3 KB</span>
+          <a href="./20260601/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 6] 20260604: LoL 팀 조합 분석기 (역대급 대작)
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="data utility" data-search="20260604 리그 오브 레전드 팀 조합 분석기 LoL Team Composition Analyzer 롤 밴픽 시너지 React">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              React + Riot API 분석기
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260604</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">🏆</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                LoL 팀 조합 분석기
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Team Composition Analyzer</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            브라우저 내 React 18과 라이엇 Data Dragon CDN을 결합하여, 챔피언 조합별 승률·티어·공방 밸런스를 분석해 주는 <strong class="text-sky-300 font-semibold">195KB에 달하는 역대급 대작</strong>입니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">React 18</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">Tailwind CSS</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">Riot CDN 챔피언 데이터</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">194.7 KB • 최대 용량</span>
+          <a href="./20260604/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 7] 20260607: 반응형 다이어리 달력
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="utility" data-search="20260607 반응형 다이어리 달력 Responsive Calendar 일정 메모 플래너">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              생산성 유틸리티
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260607</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">📅</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                반응형 다이어리 달력
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Responsive Calendar</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            모바일과 PC에 완벽 대응하는 월별 일정 관리 다이어리입니다. 날짜별 메모 등록, 카테고리 뱃지 표시, 할 일 체크 등 일상에서 바로 사용할 수 있는 실용성이 뛰어납니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">월별 캘린더 엔진</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">일정 메모</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">반응형 UI</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">49.3 KB</span>
+          <a href="./20260607/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 8] 20260611: 전통 윷놀이 한판! - AI 대전
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="game" data-search="20260611 전통 윷놀이 한판 AI 대전 보드게임 민속 민속놀이">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              민속 보드게임 & AI
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260611</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">🎯</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                전통 윷놀이 한판!
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">인공지능(AI) 1:1 대전</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            윷가락 흔들림 모션과 도·개·걸·윷·모 판정, 그리고 윷판에서 말을 전략적으로 운용하는 <strong class="text-amber-300 font-semibold">인공지능과의 1:1 대전 알고리즘</strong>을 100KB에 담아낸 명작입니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">윷놀이 말 이동 룰</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">AI 1:1 대전</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">전통 우드 테마</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">100.0 KB</span>
+          <a href="./20260611/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+      <!-- ====================================================
+           [CARD 9] 20260612: 드래곤 퀘스트 TODO
+           ==================================================== -->
+      <article class="glass-card rounded-2xl p-6 flex flex-col justify-between group" data-category="utility game" data-search="20260612 DRAGON QUEST TODO 드래곤 퀘스트 용사의 퀘스트 수첩 레트로 도트 픽셀 투두">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+              레트로 게이미피케이션
+            </span>
+            <span class="text-xs font-mono font-semibold text-slate-400">#20260612</span>
+          </div>
+
+          <div class="flex items-start gap-3 mt-2">
+            <span class="text-3xl p-2 rounded-xl bg-white/5">👾</span>
+            <div>
+              <h2 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors leading-snug">
+                DRAGON QUEST TODO
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">용사의 퀘스트 수첩</p>
+            </div>
+          </div>
+
+          <p class="text-xs sm:text-sm text-slate-300 mt-4 leading-relaxed">
+            고전 명작 드래곤 퀘스트의 8비트 감성과 NeoDunggeunmo 폰트를 결합한 퀘스트 할 일 관리 앱입니다. 과제를 완료할 때마다 경험치와 골드를 얻으며 레벨업하는 재미를 선사합니다.
+          </p>
+
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">8-bit 픽셀아트</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">NeoDunggeunmo 폰트</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-white/5 text-slate-300">TODO 게이미피케이션</span>
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-white/5 flex items-center justify-between">
+          <span class="text-xs text-slate-500 font-mono">69.6 KB</span>
+          <a href="./20260612/index.html" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 transition-all shadow-md hover:scale-105 active:scale-95">
+            <span>실행하기</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- 검색 결과 없음 안내 -->
+    <div id="no-results" class="hidden text-center py-20">
+      <div class="text-4xl mb-3">🔍</div>
+      <h3 class="text-lg font-bold text-white">일치하는 프로젝트가 없습니다</h3>
+      <p class="text-xs text-slate-400 mt-1">다른 학번이나 키워드로 검색해 보세요.</p>
+    </div>
+  </main>
+
+  <!-- ========================================================
+       하단 푸터
+       ======================================================== -->
+  <footer class="mt-24 border-t border-white/5 pt-10 text-center text-xs text-slate-500 px-4">
+    <div class="flex items-center justify-center gap-3 mb-3">
+      <span class="font-semibold text-slate-400">강릉영동대학교 AI·DX융합계열</span>
+      <span>•</span>
+      <span>AI융합콘텐츠전공 & AI드론융합전공</span>
+    </div>
+    <p>본 쇼케이스는 2026학년도 신입생 바이브 코딩 입문 특강의 실제 산출물로 제작되었습니다.</p>
+    <p class="mt-1 text-slate-600">Powered by Google Antigravity & Gemini Flash • Hosted on GitHub Pages</p>
+  </footer>
+
+  <!-- ========================================================
+       필터 & 검색 인터랙션 스크립트
+       ======================================================== -->
+  <script>
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const searchInput = document.getElementById('search-input');
+    const articles = document.querySelectorAll('#projects-grid article');
+    const noResults = document.getElementById('no-results');
+
+    let currentCategory = 'all';
+    let searchQuery = '';
+
+    function applyFilters() {
+      let visibleCount = 0;
+
+      articles.forEach(article => {
+        const catData = article.getAttribute('data-category') || '';
+        const searchData = (article.getAttribute('data-search') || '').toLowerCase();
+
+        const matchesCategory = currentCategory === 'all' || catData.includes(currentCategory);
+        const matchesSearch = !searchQuery || searchData.includes(searchQuery);
+
+        if (matchesCategory && matchesSearch) {
+          article.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          article.classList.add('hidden');
+        }
+      });
+
+      if (visibleCount === 0) {
+        noResults.classList.remove('hidden');
+      } else {
+        noResults.classList.add('hidden');
+      }
+    }
+
+    // 카테고리 탭 클릭 이벤트
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => {
+          b.classList.remove('bg-sky-500', 'text-white', 'shadow-lg', 'shadow-sky-500/20');
+          b.classList.add('text-slate-400');
+        });
+        btn.classList.add('bg-sky-500', 'text-white', 'shadow-lg', 'shadow-sky-500/20');
+        btn.classList.remove('text-slate-400');
+
+        currentCategory = btn.getAttribute('data-cat');
+        applyFilters();
+      });
+    });
+
+    // 실시간 검색어 입력 이벤트
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      applyFilters();
+    });
+  </script>
+</body>
+</html>
