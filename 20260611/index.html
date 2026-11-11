@@ -197,13 +197,13 @@
             <span class="text-3xl">🪵</span>
             <div>
                 <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-950 jua-font tracking-tight drop-shadow-sm flex items-center gap-2">
-                    증강 윷놀이 한판!
-                    <span class="text-xs bg-gradient-to-r from-amber-600 to-amber-700 text-white font-extrabold px-2.5 py-0.5 rounded-full shadow font-sans">
-                        36종 증강 & AI 대전
+                    전통 윷놀이 한판!
+                    <span id="header-mode-badge" class="text-xs bg-gradient-to-r from-amber-600 to-amber-700 text-white font-extrabold px-2.5 py-0.5 rounded-full shadow font-sans">
+                        증강 모드
                     </span>
                 </h1>
-                <p class="text-[11px] sm:text-xs text-amber-900 font-semibold hidden sm:block">
-                    공정 등급 드래프트(동일 등급 3장 & 리롤 1회) · 6턴 주기 추가 드래프트 · 특수 승리 7종 탑재
+                <p id="header-sub-desc" class="text-[11px] sm:text-xs text-amber-900 font-semibold hidden sm:block">
+                    정통 윷놀이 이동 궤적 · 공정 등급 드래프트(동일 등급 3장 & 리롤 1회) · 7대 특수 승리
                 </p>
             </div>
         </div>
@@ -237,7 +237,19 @@
             <span class="text-4xl">⚔️</span>
         </div>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-amber-950 jua-font mb-2">게임 모드 & 플레이어 선택</h2>
-        <p class="text-xs sm:text-sm text-slate-600 mb-6">강력한 증강 카드와 전략적인 플레이로 승리를 쟁취하세요!</p>
+        <p id="setup-mode-desc" class="text-xs sm:text-sm text-slate-600 mb-4">강력한 증강 카드와 전략적인 플레이로 승리를 쟁취하세요!</p>
+
+        <!-- Rule Mode Selector: Augment vs Classic -->
+        <div class="bg-amber-100/70 p-1.5 rounded-2xl flex items-center gap-1.5 mb-5 border border-amber-300">
+            <button id="rule-mode-augment-btn" type="button" onclick="setRuleMode('augment')" class="flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm jua-font transition shadow-sm bg-gradient-to-r from-amber-600 to-amber-700 text-white flex items-center justify-center gap-1.5">
+                <span>⚔️ 증강 모드</span>
+                <span class="text-[10px] font-sans font-normal opacity-90 hidden sm:inline">(36종 증강 & 드래프트)</span>
+            </button>
+            <button id="rule-mode-classic-btn" type="button" onclick="setRuleMode('classic')" class="flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm jua-font transition bg-white/70 hover:bg-white text-slate-700 flex items-center justify-center gap-1.5">
+                <span>🪵 일반 모드</span>
+                <span class="text-[10px] font-sans font-normal opacity-90 hidden sm:inline">(클래식 정통 윷놀이)</span>
+            </button>
+        </div>
 
         <!-- Mode Presets -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
@@ -1064,7 +1076,7 @@
                 rarity: 'bronze',
                 type: 'passive',
                 icon: '🐱',
-                desc: '효과 없음 (특수 시너지 조합용).',
+                desc: '효과 없음.',
                 aiScore: 30
             },
             {
@@ -1379,6 +1391,7 @@
 
         // Global State
         let gameState = {
+            ruleMode: 'augment',      // 'augment' (증강 모드) or 'classic' (일반 모드)
             gameMode: '1v1_ai',
             aiDifficulty: 'hard',
             numPlayers: 2,
@@ -1407,6 +1420,23 @@
             echoNextThrow: false,     // If '메아리' used: duplicate next roll
             extraTurnPending: false   // If '연속 행진' used
         };
+
+        function setRuleMode(mode) {
+            gameState.ruleMode = mode;
+            const augBtn = document.getElementById('rule-mode-augment-btn');
+            const classicBtn = document.getElementById('rule-mode-classic-btn');
+            const desc = document.getElementById('setup-mode-desc');
+
+            if (mode === 'augment') {
+                augBtn.className = 'flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm jua-font transition shadow-sm bg-gradient-to-r from-amber-600 to-amber-700 text-white flex items-center justify-center gap-1.5';
+                classicBtn.className = 'flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm jua-font transition bg-white/70 hover:bg-white text-slate-700 flex items-center justify-center gap-1.5';
+                desc.innerText = '강력한 36종 증강 카드와 전략적인 플레이로 승리를 쟁취하세요!';
+            } else {
+                classicBtn.className = 'flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm jua-font transition shadow-sm bg-gradient-to-r from-amber-600 to-amber-700 text-white flex items-center justify-center gap-1.5';
+                augBtn.className = 'flex-1 py-2.5 px-3 rounded-xl font-extrabold text-xs sm:text-sm jua-font transition bg-white/70 hover:bg-white text-slate-700 flex items-center justify-center gap-1.5';
+                desc.innerText = '증강 시스템 없이 순수 전통 윷놀이 본연의 규칙으로 겨룹니다!';
+            }
+        }
 
         let customPlayerConfig = [
             { name: '플레이어 1', isAI: false },
@@ -1513,10 +1543,10 @@
                     color: colorPalette[idx % colorPalette.length],
                     maxPieces: 4, // May be reduced to 2 by '급속 증식'
                     pieces: [
-                        { id: 0, node: -1, finished: false, isHero: false },
-                        { id: 1, node: -1, finished: false, isHero: false },
-                        { id: 2, node: -1, finished: false, isHero: false },
-                        { id: 3, node: -1, finished: false, isHero: false }
+                        { id: 0, node: -1, finished: false, isHero: false, history: [-1] },
+                        { id: 1, node: -1, finished: false, isHero: false, history: [-1] },
+                        { id: 2, node: -1, finished: false, isHero: false, history: [-1] },
+                        { id: 3, node: -1, finished: false, isHero: false, history: [-1] }
                     ],
                     augments: [],          // Array of equipped augment objects
                     rerollsLeft: 1,        // 1 reroll per draft
@@ -1557,10 +1587,16 @@
             renderBoardNodes();
             renderYutSticks([false, false, false, false]);
             updateUI();
-            addLog(`🎲 게임이 시작되었습니다! 첫 번째 <strong>증강 드래프트</strong>를 진행합니다.`);
 
-            // Trigger Initial Round 1 Draft
-            triggerEqualRarityDraft();
+            if (gameState.ruleMode === 'classic') {
+                document.getElementById('draft-counter-badge').classList.add('hidden');
+                addLog(`🎲 <strong>[일반 모드]</strong>로 게임이 시작되었습니다! 첫 번째 플레이어부터 윷을 던져주세요.`);
+                checkAndRunAITurn();
+            } else {
+                document.getElementById('draft-counter-badge').classList.remove('hidden');
+                addLog(`🎲 <strong>[증강 모드]</strong>로 게임이 시작되었습니다! 첫 번째 <strong>증강 드래프트</strong>를 진행합니다.`);
+                triggerEqualRarityDraft();
+            }
         }
 
         function renderBoardNodes() {
@@ -2406,7 +2442,8 @@
                 }
             }
 
-            const dest = getNextBoardNode(piece.node, steps);
+            const seq = calculateMoveSequence(piece.node, steps, piece);
+            const dest = seq.destNode;
 
             let actionType = 'normal';
             if (dest === 999 || (piece.node === 0 && dest === 0)) {
@@ -2429,47 +2466,143 @@
                 pieceId: piece.id,
                 throwIndex: gameState.selectedThrowIndex,
                 destNode: dest,
+                path: seq.path,
+                isBackDo: seq.isBackDo,
                 actionType: actionType
             });
 
             renderBoardTokens();
         }
 
-        function getNextBoardNode(startNode, steps) {
+        // 정통 윷놀이 이동 경로 & 지름길 & 백도 궤적 역추적 엔진
+        function calculateMoveSequence(startNode, steps, piece) {
+            // 대기실 출전
             if (startNode === -1) {
-                if (steps <= 0) return -1;
-                return steps;
+                if (steps <= 0) return { path: [], destNode: -1, isBackDo: false };
+                const path = [];
+                for (let s = 1; s <= steps; s++) {
+                    path.push(s);
+                }
+                return { path: path, destNode: path[path.length - 1], isBackDo: false };
             }
 
+            // 백도 (Back-Do): 실제로 걸어온 경로 히스토리 그대로 역추적!
             if (steps === -1) {
-                if (startNode === 0) return 19;
-                if (startNode === 21) return 5;
-                if (startNode === 28) return 10;
-                if (startNode === 23) return 22;
-                if (startNode === 24) return 23;
-                if (startNode === 26) return 23;
-                return startNode - 1;
+                let prevNode = -1;
+                if (piece && piece.history && piece.history.length >= 2) {
+                    prevNode = piece.history[piece.history.length - 2];
+                } else {
+                    // Fallback map
+                    if (startNode === 0) prevNode = 19;
+                    else if (startNode === 21) prevNode = 5;
+                    else if (startNode === 28) prevNode = 10;
+                    else if (startNode === 23) prevNode = 22;
+                    else if (startNode === 24) prevNode = 23;
+                    else if (startNode === 26) prevNode = 23;
+                    else if (startNode === 29) prevNode = 28;
+                    else if (startNode === 27) prevNode = 26;
+                    else if (startNode === 25) prevNode = 24;
+                    else if (startNode === 22) prevNode = 21;
+                    else prevNode = startNode - 1;
+                }
+                return { path: [prevNode], destNode: prevNode, isBackDo: true };
             }
 
+            // 정방향 이동 (steps >= 1)
+            const path = [];
             let current = startNode;
-            for (let i = 0; i < steps; i++) {
-                if (i === 0 && current === 5) { current = 21; continue; }
-                if (i === 0 && current === 10) { current = 28; continue; }
-                if (current === 23) { current = 24; continue; }
 
-                if (current === 21) current = 22;
-                else if (current === 22) current = 23;
-                else if (current === 28) current = 29;
-                else if (current === 29) current = 23;
-                else if (current === 24) current = 25;
-                else if (current === 25) current = 0;
-                else if (current === 26) current = 27;
-                else if (current === 27) current = 15;
-                else if (current === 0) return 999;
-                else if (current === 19) current = 0;
-                else current = current + 1;
+            for (let i = 0; i < steps; i++) {
+                // 꼭짓점 및 중앙 칸 진입 규칙: 모서리에 "정확히 멈춘 상태(i===0)"에서 출발할 때만 대각선 진입
+                if (i === 0 && current === 5) {
+                    current = 21;
+                    path.push(current);
+                    continue;
+                }
+                if (i === 0 && current === 10) {
+                    current = 28;
+                    path.push(current);
+                    continue;
+                }
+                if (i === 0 && current === 23) {
+                    // 중앙(방)에 정확히 멈춘 상태에서 출발할 때: 가장 빠른 골인 지름길 24번 진입
+                    current = 24;
+                    path.push(current);
+                    continue;
+                }
+
+                // 대각선 1 라인: 5 -> 21 -> 22 -> 23 -> 26 -> 27 -> 15
+                if (current === 21) {
+                    current = 22;
+                    path.push(current);
+                    continue;
+                }
+                if (current === 22) {
+                    current = 23; // 방 도착 혹은 통과
+                    path.push(current);
+                    continue;
+                }
+                if (current === 23) {
+                    // 방을 멈추지 않고 통과하는 경우 대각선 직진 관통
+                    const cameFrom29 = path.includes(29) || (piece && piece.history && piece.history[piece.history.length - 1] === 29);
+                    current = cameFrom29 ? 24 : 26;
+                    path.push(current);
+                    continue;
+                }
+                if (current === 26) {
+                    current = 27;
+                    path.push(current);
+                    continue;
+                }
+                if (current === 27) {
+                    current = 15;
+                    path.push(current);
+                    continue;
+                }
+
+                // 대각선 2 라인: 10 -> 28 -> 29 -> 23 -> 24 -> 25 -> 0
+                if (current === 28) {
+                    current = 29;
+                    path.push(current);
+                    continue;
+                }
+                if (current === 29) {
+                    current = 23;
+                    path.push(current);
+                    continue;
+                }
+                if (current === 24) {
+                    current = 25;
+                    path.push(current);
+                    continue;
+                }
+                if (current === 25) {
+                    path.push(999);
+                    return { path: path, destNode: 999, isBackDo: false };
+                }
+
+                // 외곽선 라인 (0 ~ 19)
+                if (current === 19) {
+                    path.push(999);
+                    return { path: path, destNode: 999, isBackDo: false };
+                }
+                if (current === 0) {
+                    current = 1;
+                    path.push(current);
+                    continue;
+                }
+
+                // 외곽선 직진 (4번에서 5번을 지나치면 6으로, 9번에서 10번을 지나치면 11로)
+                current = current + 1;
+                path.push(current);
             }
-            return current;
+
+            return { path: path, destNode: current, isBackDo: false };
+        }
+
+        function getNextBoardNode(startNode, steps, piece) {
+            const seq = calculateMoveSequence(startNode, steps, piece);
+            return seq.destNode;
         }
 
         function executeMove(destObj) {
@@ -2511,8 +2644,9 @@
                 movingPieces.forEach(p => {
                     p.finished = true;
                     p.node = -1;
+                    p.history = [-1];
                     // Check Special Win: '영웅의 출격'
-                    if (p.isHero) {
+                    if (gameState.ruleMode === 'augment' && p.isHero) {
                         triggerSpecialVictory(player, '영웅의 출격', '지정된 영웅 말이 당당하게 완주하여 특수 승리하였습니다! 🦸');
                         return;
                     }
@@ -2533,8 +2667,8 @@
                     showFloatingToast(`🤝 ${carriedCount}업 합체!`, 'bg-amber-500 text-white');
                     addLog(`🤝 ${player.name}님의 말이 합쳐져 <strong>${carriedCount}개 업기</strong> 상태가 되었습니다!`);
 
-                    // Passive: '연합 전선' or '콤보 마스터' (+1 throw on carry)
-                    if (player.augments.some(a => a.id === 'b11' || a.id === 'g10')) {
+                    // Passive: '연합 전선' or '콤보 마스터' (+1 throw on carry, 증강 모드)
+                    if (gameState.ruleMode === 'augment' && player.augments.some(a => a.id === 'b11' || a.id === 'g10')) {
                         gameState.canThrow = true;
                         addLog(`🤝 [업기 시너지] 말을 업어 <strong>추가 던지기 1회</strong>를 획득했습니다!`);
                     }
@@ -2542,7 +2676,27 @@
                     SoundFX.playMove();
                 }
 
-                movingPieces.forEach(p => p.node = targetNode);
+                // 이동 궤적(history) 정확히 갱신
+                if (destObj.isBackDo) {
+                    movingPieces.forEach(p => {
+                        if (p.history && p.history.length >= 2) {
+                            p.history.pop();
+                        }
+                        p.node = targetNode;
+                    });
+                } else {
+                    movingPieces.forEach(p => {
+                        if (!p.history) p.history = [-1];
+                        if (destObj.path && destObj.path.length > 0) {
+                            destObj.path.forEach(n => {
+                                if (n !== 999) p.history.push(n);
+                            });
+                        } else {
+                            p.history.push(targetNode);
+                        }
+                        p.node = targetNode;
+                    });
+                }
 
                 // Capturing Opponents (잡기)
                 gameState.players.forEach((otherPlayer, pIdx) => {
@@ -2550,11 +2704,15 @@
                         const opponentsAtNode = otherPlayer.pieces.filter(op => !op.finished && op.node === targetNode);
                         if (opponentsAtNode.length > 0) {
                             // Passive: '전술적 후퇴' (Tactical Retreat: only 1 piece sent to yard)
-                            if (otherPlayer.augments.some(a => a.id === 's2') && opponentsAtNode.length > 1) {
+                            if (gameState.ruleMode === 'augment' && otherPlayer.augments.some(a => a.id === 's2') && opponentsAtNode.length > 1) {
                                 opponentsAtNode[0].node = -1;
+                                opponentsAtNode[0].history = [-1];
                                 addLog(`🛡️ [전술적 후퇴] ${otherPlayer.name}의 업힌 말 중 1개만 대기실로 가고 나머지는 방어되었습니다!`);
                             } else {
-                                opponentsAtNode.forEach(op => op.node = -1);
+                                opponentsAtNode.forEach(op => {
+                                    op.node = -1;
+                                    op.history = [-1];
+                                });
                             }
 
                             capturedOpponent = true;
@@ -2695,8 +2853,8 @@
                 return;
             }
 
-            // Check 6-turn Interval Draft Trigger (모든 플레이어 총합 6턴 단위)
-            if (gameState.totalTurnsTaken > 0 && gameState.totalTurnsTaken % 6 === 0) {
+            // Check 6-turn Interval Draft Trigger (모든 플레이어 총합 6턴 단위, 증강 모드에서만)
+            if (gameState.ruleMode === 'augment' && gameState.totalTurnsTaken > 0 && gameState.totalTurnsTaken % 6 === 0) {
                 resetTurnState();
                 advanceToNextPlayerIndex();
                 triggerEqualRarityDraft();
@@ -2746,6 +2904,7 @@
         // Victory Handlers: Special & Standard
         // ==============================================
         function triggerSpecialVictory(player, augmentTitle, message) {
+            if (gameState.ruleMode !== 'augment') return;
             gameState.gameOver = true;
             SoundFX.playWin();
             ParticleFX.triggerVictoryConfetti();
@@ -2887,7 +3046,7 @@
                 // If back-do can capture opponent
                 const canKill = player.pieces.some(pc => {
                     if (pc.node !== -1 && !pc.finished) {
-                        const backNode = getNextBoardNode(pc.node, -1);
+                        const backNode = getNextBoardNode(pc.node, -1, pc);
                         return gameState.players.some(op => op.id !== player.id && op.pieces.some(o => o.node === backNode));
                     }
                     return false;
@@ -2941,7 +3100,7 @@
                         steps += 1;
                     }
 
-                    const dest = getNextBoardNode(pc.node, steps);
+                    const dest = getNextBoardNode(pc.node, steps, pc);
                     const score = scoreAIMove(player, pc, throwObj, dest);
                     possibleMoves.push({
                         pieceId: pc.id,
@@ -3035,7 +3194,7 @@
                         otherPlayer.pieces.forEach(op => {
                             if (!op.finished && op.node !== -1) {
                                 for (let s = 1; s <= 5; s++) {
-                                    if (getNextBoardNode(op.node, s) === destNode) danger = true;
+                                    if (getNextBoardNode(op.node, s, op) === destNode) danger = true;
                                 }
                             }
                         });
@@ -3053,6 +3212,21 @@
         function updateUI() {
             if (gameState.gameOver) return;
             const curPlayer = gameState.players[gameState.currentTurnIndex];
+
+            // Header Mode Badge Sync
+            const modeBadge = document.getElementById('header-mode-badge');
+            const subDesc = document.getElementById('header-sub-desc');
+            if (modeBadge) {
+                if (gameState.ruleMode === 'classic') {
+                    modeBadge.innerText = '일반 모드 (클래식)';
+                    modeBadge.className = 'text-xs bg-slate-700 text-white font-extrabold px-2.5 py-0.5 rounded-full shadow font-sans';
+                    if (subDesc) subDesc.innerText = '순수 전통 윷놀이 룰 · 정확한 모퉁이/중앙 착지 지름길 규칙 · 4개 말 완주 승리';
+                } else {
+                    modeBadge.innerText = '증강 모드 (36종)';
+                    modeBadge.className = 'text-xs bg-gradient-to-r from-amber-600 to-amber-700 text-white font-extrabold px-2.5 py-0.5 rounded-full shadow font-sans';
+                    if (subDesc) subDesc.innerText = '정통 윷놀이 궤적 · 공정 등급 드래프트(동일 등급 3장 & 리롤 1회) · 7대 특수 승리';
+                }
+            }
 
             // Turn Avatar & Text
             const avatar = document.getElementById('current-player-avatar');
@@ -3191,7 +3365,9 @@
 
                 // Header
                 let augTagsHtml = '';
-                if (p.augments.length === 0) {
+                if (gameState.ruleMode === 'classic') {
+                    augTagsHtml = '<span class="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">🪵 클래식 일반 모드</span>';
+                } else if (p.augments.length === 0) {
                     augTagsHtml = '<span class="text-[10px] text-slate-400 italic">장착된 증강 없음</span>';
                 } else {
                     p.augments.forEach(aug => {
@@ -3199,10 +3375,30 @@
                         if (aug.rarity === 'silver') badgeBg = 'bg-slate-200 text-slate-900 border-slate-400';
                         if (aug.rarity === 'gold') badgeBg = 'bg-yellow-200 text-yellow-950 border-yellow-500 font-extrabold';
 
+                        // 스택형 증강 실시간 수치 시각화
+                        let stackBadge = '';
+                        if (aug.id === 'b4') { // 도의 기적
+                            stackBadge = `<span class="bg-amber-600 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm">${p.stats.doStreak}/5</span>`;
+                        } else if (aug.id === 's12') { // 환상의 짝꿍
+                            stackBadge = `<span class="bg-blue-600 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm">${p.stats.gaeStreak % 2}/2</span>`;
+                        } else if (aug.id === 'b7') { // 후진의 달인
+                            stackBadge = `<span class="bg-slate-700 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm">${2 - (aug.usedCount || 0)}회</span>`;
+                        } else if (aug.id === 'b8') { // 백도의 암살자
+                            stackBadge = `<span class="bg-red-600 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm animate-pulse">${p.stats.backDoCaptures}/2</span>`;
+                        } else if (aug.id === 's3') { // 현상금 사냥꾼
+                            stackBadge = `<span class="bg-purple-600 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm animate-pulse">${p.stats.capturedCount}/5</span>`;
+                        } else if (aug.id === 'g8') { // 칠전팔기
+                            stackBadge = `<span class="bg-orange-600 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm animate-pulse">${p.stats.timesGotCaptured}/7</span>`;
+                        } else if (aug.id === 'b9') { // 오뚝이의 집념
+                            stackBadge = `<span class="bg-red-700 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm">${p.stats.timesGotCaptured}/12</span>`;
+                        } else if (aug.id === 's11') { // 윷놀이의 달인
+                            stackBadge = `<span class="bg-yellow-600 text-white px-1.5 py-0.2 rounded-full font-black text-[9px] ml-1 shadow-sm">${p.stats.rolledTypes.size}/6</span>`;
+                        }
+
                         augTagsHtml += `
                             <div class="relative has-tooltip inline-block">
                                 <span class="text-[10px] px-2 py-0.5 rounded-lg border ${badgeBg} cursor-help flex items-center gap-0.5">
-                                    <span>${aug.icon}</span> <span>${aug.name}</span>
+                                    <span>${aug.icon}</span> <span>${aug.name}</span>${stackBadge}
                                 </span>
                                 <div class="tooltip-box absolute z-50 bottom-full left-0 mb-1 w-48 p-2 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl pointer-events-none">
                                     <div class="font-bold text-amber-400">${aug.name} [${aug.rarity}]</div>
